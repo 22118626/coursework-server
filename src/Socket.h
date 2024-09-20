@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
@@ -25,12 +26,14 @@ public:
     void stop();
 
 private:
+    bool run = false;
     // Private constructor and destructor for singleton
     Socket();
     ~Socket();
 
     // Helper methods
-    void handleClient(int clientSocket);
+    static void handleClient(int clientSocket);
+    void SocketConnectionLoop();
 
     // Member variables
     SOCKET serverSocket;

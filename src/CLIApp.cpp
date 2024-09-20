@@ -19,7 +19,7 @@ void CLIApp::stop() {
 
 bool CLIApp::ConnectToSocket() {
     this->socket = &Socket::getInstance();
-    this->socket->start(25565);
+    this->socket->start(4);
     return false;
 }
 

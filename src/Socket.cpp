@@ -5,6 +5,8 @@
 #include <mutex>
 #include "Socket.h"
 
+#include <thread>
+
 
 Socket& Socket::getInstance() {
     static Socket instance; // Guaranteed to be destroyed and instantiated on first use.
@@ -65,24 +67,30 @@ void Socket::start(int port) {
     }
 
     std::cout << "Socket Server started on port " << inet_ntoa(serverAddr.sin_addr) << ":"<< port << std::endl;
-    running = true;
+    std::thread ConnectionLoopThread(&Socket::SocketConnectionLoop, this);
+    ConnectionLoopThread.detach();
+    std::cin.get();
+}
+void Socket::SocketConnectionLoop() {
+    while (true) {
+        running = true;
 
-    // Example: Accept clients (this could be in a loop, with thread handling, etc.)
-    sockaddr_in clientAddr;
-    int clientSize = sizeof(clientAddr);
-    std::cout << "dingus qualidea" << std::endl;
-    SOCKET clientSocket = accept(serverSocket, (sockaddr*)&clientAddr, &clientSize);
-    std::cout << "dingleberrypoopybeary" << std::endl;
-    if (clientSocket == INVALID_SOCKET) {
-        std::cerr << "Accept failed: " << WSAGetLastError() << std::endl;
-        closesocket(serverSocket);
-        WSACleanup();
-        return;
+        // Example: Accept clients (this could be in a loop, with thread handling, etc.)
+        sockaddr_in clientAddr{};
+        int clientSize = sizeof(clientAddr);
+        SOCKET clientSocket = accept(serverSocket, (sockaddr*)&clientAddr, &clientSize);
+        if (clientSocket == INVALID_SOCKET) {
+            std::cerr << "Accept failed: " << WSAGetLastError() << std::endl;
+            closesocket(serverSocket);
+            WSACleanup();
+            return;
+        }
+
+        // Handle the connected client
+        std::thread handleClientThreadObject(handleClient, clientSocket);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        handleClientThreadObject.detach();
     }
-    std::cout << "hello" << std::endl;
-
-    // Handle the connected client
-    handleClient(clientSocket);
 }
 
 void Socket::handleClient(int clientSocket) {
@@ -96,6 +104,7 @@ void Socket::handleClient(int clientSocket) {
     }
 
     closesocket(clientSocket);
+
 }
 
 void Socket::stop() {
