@@ -1,0 +1,14 @@
+//
+// Created by ener9 on 29/09/2024.
+//
+
+#ifndef COURSEWORK_SERVER_DATABASEMANAGER_H
+#define COURSEWORK_SERVER_DATABASEMANAGER_H
+
+
+class DatabaseManager {
+
+};
+
+
+#endif //COURSEWORK_SERVER_DATABASEMANAGER_H

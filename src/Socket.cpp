@@ -114,4 +114,5 @@ void Socket::stop() {
     closesocket(serverSocket);
     WSACleanup();
     running = false;
+    std::cout << "Accept failed is normal for now" << std::endl;
 }

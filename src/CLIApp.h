@@ -20,10 +20,13 @@ private:
     bool running;
 
     void stop();
-    bool ConnectToSocket();
+    bool ConnectToSocket(const std::string& arg);
     Socket* socket;
 
-    std::unordered_map<std::string, std::function<void()>> commands;
+    std::unordered_map<std::string, std::function<void(const std::string&)>> commands;
+
+    static void help();
+    void exit();
 };
 
 
