@@ -4,6 +4,7 @@
 
 #include "DatabaseManager.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <vector>
@@ -27,6 +28,7 @@ DatabaseManager::DatabaseManager() {
     std::cout << "string in the file: " << buffer.data() << std::endl;*/
     openFile("database.bin");
     std::cout << readNextString() << std::endl;
+    dbFile.close();
 
 }
 
@@ -42,6 +44,7 @@ std::string DatabaseManager::readNextString() {
     int16_t stringLength;
     dbFile.read(reinterpret_cast<char*>(&stringLength), sizeof(uint16_t));
     std::vector<char> buffer(stringLength);
+    std::cout << stringLength << std::endl;
     dbFile.read(buffer.data(), sizeof(stringLength));
     return buffer.data();
 }
