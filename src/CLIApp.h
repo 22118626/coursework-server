@@ -27,6 +27,7 @@ private:
 
     static void help();
     void exit();
+    void checkdb();
 };
 
 

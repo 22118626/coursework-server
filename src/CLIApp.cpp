@@ -7,15 +7,20 @@
 #include <iostream>
 #include <iomanip>
 
+#include "DatabaseManager.h"
+
 CLIApp::CLIApp() {
     commands["connect"] = [this](const std::string& args) {this->ConnectToSocket(args);};
     commands["stop"] = [this](const std::string&) {this->stop();};
     commands["help"] = [this](const std::string&) {this->help();};
     commands["exit"] = [this](const std::string&) {this->exit();};
+    commands["checkdb"] = [this](const std::string&) {this->checkdb();};
 }
 
 void CLIApp::run() {
+    std::cout << "Hello World!\n";
     while(this->running) {
+        std::cout << "> ";
         std::string input;
         std::cout << ">>"; std::getline(std::cin, input);
 
@@ -60,6 +65,10 @@ bool CLIApp::ConnectToSocket(const std::string& args) {
 void CLIApp::exit() {
     this->stop();
     this->running = false;
+}
+void CLIApp::checkdb() {
+    std::cout << "checkdb" << std::endl;
+    DatabaseManager();
 }
 
 void CLIApp::help() {
