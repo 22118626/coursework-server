@@ -7,7 +7,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include "DatabaseManager.h"
+#include "FileManager.h"
 
 CLIApp::CLIApp() {
     commands["connect"] = [this](const std::string& args) {this->ConnectToSocket(args);};
@@ -15,12 +15,12 @@ CLIApp::CLIApp() {
     commands["help"] = [this](const std::string&) {this->help();};
     commands["exit"] = [this](const std::string&) {this->exit();};
     commands["checkdb"] = [this](const std::string&) {this->checkdb();};
+    this->running=true;
 }
 
 void CLIApp::run() {
-    std::cout << "Hello World!\n";
+    std::cout << "Hello World!" << std::endl;
     while(this->running) {
-        std::cout << "> ";
         std::string input;
         std::cout << ">>"; std::getline(std::cin, input);
 
@@ -68,7 +68,7 @@ void CLIApp::exit() {
 }
 void CLIApp::checkdb() {
     std::cout << "checkdb" << std::endl;
-    DatabaseManager();
+    FileManager(std::string("file.bin"));
 }
 
 void CLIApp::help() {
