@@ -68,7 +68,9 @@ void CLIApp::exit() {
 }
 void CLIApp::checkdb() {
     std::cout << "checkdb" << std::endl;
-    FileManager(std::string("file.bin"));
+    FileManager file = FileManager(std::string("file.bin"));
+    file.readHeader();
+    file.closeFile();
 }
 
 void CLIApp::help() {

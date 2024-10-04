@@ -23,6 +23,7 @@ public:
     uint32_t readNextUint32_t();
     std::string readNextString();
     bool readNextBool();
+    void closeFile();
 
 private:
     fpos_t dataStart;

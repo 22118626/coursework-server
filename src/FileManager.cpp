@@ -10,13 +10,11 @@
 
 FileManager::FileManager(std::string path) {
     openFile(path);
-    std::cout << "data->" << readNextString() <<"\t"<< readNextInt16_t() <<"<- end of data" << std::endl;
-    FileStream.close();
-
 }
 
 void FileManager::readHeader() {
     dataStart =  static_cast<fpos_t>(readNextUint32_t());
+    std::cout << "data->" << readNextString() <<"\t"<< readNextInt16_t() <<"<- end of data" << std::endl;
 }
 
 
@@ -41,12 +39,14 @@ uint16_t FileManager::readNextUint16_t() {
 uint32_t FileManager::readNextUint32_t() {
     uint32_t value;
     FileStream.read(reinterpret_cast<char*>(&value), sizeof(uint32_t));
+    std::cout << FileStream.tellg() << std::endl;
     return value;
 }
 
 
 std::string FileManager::readNextString() {
     uint16_t stringLength;
+    std::cout << FileStream.tellg() << std::endl;
     FileStream.read(reinterpret_cast<char*>(&stringLength), sizeof(uint16_t));
     std::vector<char> buffer(stringLength);
     FileStream.read(buffer.data(), stringLength);
@@ -54,6 +54,7 @@ std::string FileManager::readNextString() {
     return buffer.data();
 }
 
-
-
+void FileManager::closeFile() {
+    FileStream.close();
+}
 
