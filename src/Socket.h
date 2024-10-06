@@ -10,6 +10,9 @@
 #include <thread>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <mutex>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -22,7 +25,7 @@ public:
     Socket& operator=(const Socket&) = delete;
 
     // Server methods
-    void start(int port);
+    bool start(int port);
     void stop();
 
 private:
@@ -32,13 +35,16 @@ private:
     ~Socket();
 
     // Helper methods
-    static void handleClient(int clientSocket);
+    static void handleClient(SSL* ssl, SOCKET clientSocket);
     void SocketConnectionLoop();
 
     // Member variables
     SOCKET serverSocket;
     bool running;
     sockaddr_in serverAddr{};
+
+    SSL_CTX* ctx;
+
 };
 
 

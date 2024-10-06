@@ -1,30 +1,36 @@
 //
 // Created by ener9 on 18/09/2024.
 //
-#include <iostream>
-#include <mutex>
+
+
 #include "Socket.h"
-
-#include <thread>
-
+#include <chrono>
+#include <cstdlib>
 
 Socket& Socket::getInstance() {
-    static Socket instance; // Guaranteed to be destroyed and instantiated on first use.
+    static Socket instance;
     return instance;
 }
 
-Socket::Socket() : serverSocket(INVALID_SOCKET), running(false) {
+Socket::Socket() : serverSocket(INVALID_SOCKET), running(false), ctx(nullptr) {
     std::cout << "Singleton Socket constructor created" << std::endl;
+
+    // Initialize OpenSSL
+    SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
 }
 
 Socket::~Socket() {
-    stop(); // Ensure server is stopped when the object is destroyed
+    stop();
+    SSL_CTX_free(ctx);
+    EVP_cleanup();
 }
 
-void Socket::start(int port) {
+bool Socket::start(int port) {
     if (running) {
         std::cerr << "Server is already running." << std::endl;
-        return;
+        return false;
     }
 
     // Initialize Winsock
@@ -32,7 +38,28 @@ void Socket::start(int port) {
     int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (result != 0) {
         std::cerr << "WSAStartup failed: " << result << std::endl;
-        return;
+        return false;
+    }
+
+    // Create SSL context
+    ctx = SSL_CTX_new(TLS_server_method()); // Create SSL context
+    if (!ctx) {
+        std::cerr << "Unable to create SSL context" << std::endl;
+        return false;
+    }
+
+    // Load server certificate and private key
+    if (SSL_CTX_use_certificate_file(ctx, "server.crt", SSL_FILETYPE_PEM) <= 0 ||
+        SSL_CTX_use_PrivateKey_file(ctx, "server.key", SSL_FILETYPE_PEM) <= 0) {
+        std::cerr << "Unable to load certificate or key please create one in the window that will soon appear then run the command aggain" << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds (5));
+        int cmdresult = system("cmd.exe /c echo the files will be created in \"%cd%\" && "
+                               ".\\OpenSSL-Win64\\bin\\openssl.exe genrsa -out server.key 2048 &&"
+                               ".\\OpenSSL-Win64\\bin\\openssl.exe req -x509 -key server.key -out server.crt");
+        if(cmdresult > 0) {
+            std::cout << "':('  😢" << std::endl;
+        }
+        return false;
     }
 
     // Create socket
@@ -40,7 +67,7 @@ void Socket::start(int port) {
     if (serverSocket == INVALID_SOCKET) {
         std::cerr << "Socket creation failed: " << WSAGetLastError() << std::endl;
         WSACleanup();
-        return;
+        return false;
     }
 
     // Configure server address
@@ -54,7 +81,7 @@ void Socket::start(int port) {
         std::cerr << "Bind failed: " << WSAGetLastError() << std::endl;
         closesocket(serverSocket);
         WSACleanup();
-        return;
+        return false;
     }
 
     // Start listening for incoming connections
@@ -63,48 +90,68 @@ void Socket::start(int port) {
         std::cerr << "Listen failed: " << WSAGetLastError() << std::endl;
         closesocket(serverSocket);
         WSACleanup();
-        return;
+        return false;
     }
 
-    std::cout << "Socket Server started on port " << inet_ntoa(serverAddr.sin_addr) << ":"<< port << std::endl;
-    std::thread ConnectionLoopThread(&Socket::SocketConnectionLoop, this);
-    ConnectionLoopThread.detach();
-    std::cin.get();
-}
-void Socket::SocketConnectionLoop() {
-    while (true) {
-        running = true;
+    std::cout << "Socket Server started on port " << port << std::endl;
 
-        // Example: Accept clients (this could be in a loop, with thread handling, etc.)
+    // Start connection loop in a separate thread
+    running = true;
+    std::thread connectionLoopThread(&Socket::SocketConnectionLoop, this);
+    connectionLoopThread.detach(); // Detach the thread to allow it to run independently
+
+    // Wait for user input to keep the server running
+    std::cin.get();
+    return true;
+}
+
+void Socket::SocketConnectionLoop() {
+    while (running) {
+        // Accept clients
         sockaddr_in clientAddr{};
         int clientSize = sizeof(clientAddr);
         SOCKET clientSocket = accept(serverSocket, (sockaddr*)&clientAddr, &clientSize);
+
         if (clientSocket == INVALID_SOCKET) {
             std::cerr << "Accept failed: " << WSAGetLastError() << std::endl;
-            closesocket(serverSocket);
-            WSACleanup();
-            return;
+            continue; // Continue accepting other clients
         }
 
-        // Handle the connected client
-        std::thread handleClientThreadObject(handleClient, clientSocket);
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        handleClientThreadObject.detach();
+        // Create SSL object and attach it to the client socket
+        SSL* ssl = SSL_new(ctx);
+        SSL_set_fd(ssl, clientSocket);
+
+        // Perform SSL handshake
+        if (SSL_accept(ssl) <= 0) {
+            std::cerr << "SSL_accept failed: " << ERR_get_error() << std::endl;
+            SSL_free(ssl);
+            closesocket(clientSocket);
+            continue;
+        }
+
+        // Handle the connected client in a separate thread
+        std::thread handleClientThread([this, ssl, clientSocket]() {handleClient(ssl, clientSocket);});
+        handleClientThread.detach(); // Detach the thread to allow it to run independently
     }
 }
 
-void Socket::handleClient(int clientSocket) {
-    std::string message = "Hello from the server!\n";
-    send(clientSocket, message.c_str(), message.size(), 0);
+void Socket::handleClient(SSL* ssl, SOCKET clientSocket) {
+    // Send a welcome message to the client
+    const std::string message = "Hello from the SSL server!\n";
+    SSL_write(ssl, message.c_str(), message.size());
 
+    // Receive a message from the client
     char buffer[512];
-    int bytesReceived = recv(clientSocket, buffer, 512, 0);
+    int bytesReceived = SSL_read(ssl, buffer, sizeof(buffer)); // Use SSL_read instead of recv
     if (bytesReceived > 0) {
-        std::cout << "Received message from client: " << std::string(buffer, 0, bytesReceived) << std::endl;
+        std::cout << "Received message from client: "
+                  << std::string(buffer, bytesReceived) << std::endl;
     }
 
+    // Shutdown the SSL connection and close the socket
+    SSL_shutdown(ssl);
+    SSL_free(ssl);
     closesocket(clientSocket);
-
 }
 
 void Socket::stop() {
@@ -114,5 +161,5 @@ void Socket::stop() {
     closesocket(serverSocket);
     WSACleanup();
     running = false;
-    std::cout << "Accept failed is normal for now" << std::endl;
+    std::cout << "Server stopped." << std::endl;
 }

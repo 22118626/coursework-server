@@ -58,7 +58,10 @@ bool CLIApp::ConnectToSocket(const std::string& args) {
     std::cout << "connect " << port << std::endl;
 
     this->socket = &Socket::getInstance();
-    this->socket->start(port);
+    if(!this->socket->start(port)) {
+        std::cout << "failed to start socket make sure SSL certificate and key are correctly set up" << std::endl;
+        return false;
+    }
     return true;
 }
 
@@ -68,9 +71,11 @@ void CLIApp::exit() {
 }
 void CLIApp::checkdb() {
     std::cout << "checkdb" << std::endl;
-    FileManager file = FileManager(std::string("file.bin"));
-    file.readHeader();
-    file.closeFile();
+    FileManager fileManager = FileManager();
+    if(fileManager.openFile("file.bin")) {
+        fileManager.readHeader();
+        fileManager.closeFile();
+    }
 }
 
 void CLIApp::help() {

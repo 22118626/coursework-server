@@ -7,9 +7,10 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
+#include <filesystem>
 
-FileManager::FileManager(std::string path) {
-    openFile(path);
+FileManager::FileManager() {
+
 }
 
 void FileManager::readHeader() {
@@ -22,8 +23,17 @@ FileManager::~FileManager() {
     std::cout << "Destructor called" << std::endl;
 }
 
-void FileManager::openFile(const std::string& filePath) {
-    FileStream.open(filePath, std::ios::in | std::ios::binary);
+bool FileManager::openFile(const std::string& filePath) {
+    try {
+        if(std::filesystem::exists(filePath)) {
+            FileStream.open(filePath, std::ios::in | std::ios::binary);
+            return true;
+        }
+        std::cout << "\"" << filePath << "\" does not exist" << std::endl;
+        return false;
+    } catch(const std::exception& exception) {
+        return false;
+    }
 }
 
 int16_t FileManager::readNextInt16_t() {

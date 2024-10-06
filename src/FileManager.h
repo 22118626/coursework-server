@@ -12,10 +12,10 @@
 class FileManager {
 
 public:
-    FileManager(std::string path);
+    FileManager();
     ~FileManager();
 
-    void openFile(const std::string& filePath);
+    bool openFile(const std::string& filePath);
     void readHeader();
     int16_t readNextInt16_t();
     uint16_t readNextUint16_t();
@@ -26,7 +26,7 @@ public:
     void closeFile();
 
 private:
-    fpos_t dataStart;
+    fpos_t dataStart{};
     fpos_t pointerpos{};
     std::ifstream FileStream;
 
