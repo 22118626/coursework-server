@@ -7,6 +7,7 @@
 #include <iostream>
 #include <iomanip>
 
+#include "CertSocket.h"
 #include "FileManager.h"
 
 CLIApp::CLIApp() {
@@ -15,6 +16,7 @@ CLIApp::CLIApp() {
     commands["help"] = [this](const std::string&) {this->help();};
     commands["exit"] = [this](const std::string&) {this->exit();};
     commands["checkdb"] = [this](const std::string&) {this->checkdb();};
+    commands["certServer"] = [this](const std::string& args) {this->certsocket(args);};
     this->running=true;
 }
 
@@ -63,6 +65,23 @@ bool CLIApp::ConnectToSocket(const std::string& args) {
         return false;
     }
     return true;
+}
+
+void CLIApp::certsocket(const std::string& args) {
+    std::istringstream iss(args);
+    int port = 0;
+
+    iss >> port;
+    if(port == 0) {
+        std::cout << "invalid args, use: connect <port>" << std::endl;
+        return;
+    }
+
+
+    CertSocket certSocket = CertSocket();
+    if(!certSocket.start(port)) {
+        std::cout << "failed to start socket make sure SSL certificate and key are correctly set up" << std::endl;
+    }
 }
 
 void CLIApp::exit() {

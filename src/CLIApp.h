@@ -28,6 +28,7 @@ private:
     static void help();
     void exit();
     void checkdb();
+    void certsocket(const std::string& arg);
 };
 
 

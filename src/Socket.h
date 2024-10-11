@@ -25,7 +25,7 @@ public:
     Socket& operator=(const Socket&) = delete;
 
     // Server methods
-    bool start(int port);
+    virtual bool start(int port);
     void stop();
 
 private:
