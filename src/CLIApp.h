@@ -8,7 +8,10 @@
 #include <string>
 #include <unordered_map>
 #include <functional>
+
 #include "Socket.h"
+#include "CertSocket.h"
+#include "FileManager.h"
 
 
 class CLIApp {

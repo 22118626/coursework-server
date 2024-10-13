@@ -11,13 +11,20 @@
 
 class CertSocket : public Socket{
 public:
-    explicit CertSocket();
-    ~CertSocket();
+    static CertSocket& getInstance();
+    CertSocket();
+    ~CertSocket() override;
+
     bool start(int port) override;
 
 private:
+    void sendCertificate(SOCKET clientSocket, const std::string &certFile);
+
     SOCKET certsocket;
     SOCKET serverSocket;
+    Socket socketInstance;
+
+
 };
 
 

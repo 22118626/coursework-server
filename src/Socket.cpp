@@ -5,7 +5,7 @@
 
 #include "Socket.h"
 #include <chrono>
-#include <cstdlib>
+
 
 Socket& Socket::getInstance() {
     static Socket instance;
@@ -49,14 +49,15 @@ bool Socket::start(int port) {
     }
 
     // Load server certificate and private key
-    if (SSL_CTX_use_certificate_file(ctx, "server.crt", SSL_FILETYPE_PEM) <= 0 ||
+    if (SSL_CTX_use_certificate_file(ctx, "ServerCertificate.crt", SSL_FILETYPE_PEM) <= 0 ||
         SSL_CTX_use_PrivateKey_file(ctx, "server.key", SSL_FILETYPE_PEM) <= 0) {
         std::cerr << "Unable to load certificate or key please create one in the window that will soon appear then run the command aggain" << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds (5));
+        //executes a cmd command to create a key and then asks user to fillout form to create a certificate, to be used for ssl/tls encrypted packets between client and server.
         int cmdresult = system("cmd.exe /c echo the files will be created in \"%cd%\" && "
                                ".\\OpenSSL-Win64\\bin\\openssl.exe genrsa -out server.key 2048 &&"
                                "set OPENSSL_CONF=%cd%\\OpenSSL-Win64\\bin\\cnf\\openssl.cnf &&"
-                               ".\\OpenSSL-Win64\\bin\\openssl.exe req -x509 -key server.key -out server.crt");
+                               ".\\OpenSSL-Win64\\bin\\openssl.exe req -x509 -key server.key -out ServerCertificate.crt");
         if(cmdresult > 0) {
             std::cout << "':('  😢" << std::endl;
         }
@@ -102,7 +103,7 @@ bool Socket::start(int port) {
     connectionLoopThread.detach(); // Detach the thread to allow it to run independently
 
     // Wait for user input to keep the server running
-    //std::cin.get();
+    //std::cin.get(); // <- redundant. causes a bug where if the socket is created, and command is typed by the used this line will hijack the first character ("exit" -> "xit" => no command 'xit')
     return true;
 }
 

@@ -19,23 +19,23 @@
 
 class Socket {
 public:
-    static Socket& getInstance();
+    static Socket &getInstance();
 
-    Socket(const Socket&) = delete;
-    Socket& operator=(const Socket&) = delete;
+    /*Socket(const Socket &) = delete;
+
+    Socket &operator=(const Socket &) = delete;*/
 
     // Server methods
     virtual bool start(int port);
+
     void stop();
 
-private:
-    bool run = false;
-    // Private constructor and destructor for singleton
-    Socket();
-    ~Socket();
+    virtual ~Socket();
 
-    // Helper methods
-    static void handleClient(SSL* ssl, SOCKET clientSocket);
+protected:
+
+
+    static void handleClient(SSL *ssl, SOCKET clientSocket);
     void SocketConnectionLoop();
 
     // Member variables
@@ -43,9 +43,13 @@ private:
     bool running;
     sockaddr_in serverAddr{};
 
-    SSL_CTX* ctx;
+    SSL_CTX *ctx;
 
+
+    Socket();
+
+private:
+    bool run = false;
 };
-
 
 #endif //COURSEWORK_SERVER_SOCKET_H
