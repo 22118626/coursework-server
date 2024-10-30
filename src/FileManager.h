@@ -7,12 +7,15 @@
 #include <cstdint>
 #include <string>
 #include <fstream>
+#include <vector>
 
 
 class FileManager {
 
 public:
     FileManager();
+    FileManager(const std::string &filePath);
+
     ~FileManager();
 
     bool openFile(const std::string& filePath);
@@ -25,14 +28,16 @@ public:
     bool readNextBool();
     void closeFile();
 
+    void appendAtTheEnd(const std::vector<uint8_t>& data);
+
+
 private:
     fpos_t dataStart{};
     fpos_t pointerpos{};
     std::ifstream FileStream;
 
     std::ifstream fileData;
-
-
+    const std::string &filePath;
 };
 
 

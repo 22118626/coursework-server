@@ -9,13 +9,13 @@
 #include <vector>
 #include <filesystem>
 
-FileManager::FileManager() {
-
+FileManager::FileManager(const std::string& filePath) : filePath(filePath) {
+    this->openFile(filePath);
 }
 
 void FileManager::readHeader() {
     dataStart =  static_cast<fpos_t>(readNextUint32_t());
-    std::cout << "data->" << readNextString() <<"\t"<< readNextInt16_t() <<"<- end of data" << std::endl;
+    //std::cout << "data->" << readNextString() <<"\t"<< readNextInt16_t() <<"<- end of data" << std::endl;
 }
 
 
@@ -62,6 +62,20 @@ std::string FileManager::readNextString() {
     FileStream.read(buffer.data(), stringLength);
     FileStream.seekg(FileStream.tellg()+ std::ifstream::pos_type(1) , std::ios::beg);
     return buffer.data();
+}
+
+void FileManager::appendAtTheEnd(const std::vector<uint8_t> &data) {
+    std::ofstream outfile(this->filePath, std::ios::binary | std::ios::app);
+    if(!outfile) {
+        std::cerr << "Error opening file for appending." << std::endl;
+        return;
+    }
+    outfile.write(reinterpret_cast<const char*>(data.data()), data.size());
+    outfile.close();
+
+    if(!outfile.good()) {
+        std::cout << "error when writing to file " << this->filePath << std::endl;
+    }
 }
 
 void FileManager::closeFile() {
