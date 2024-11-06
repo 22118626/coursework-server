@@ -28,10 +28,11 @@ private:
 
     std::unordered_map<std::string, std::function<void(const std::string&)>> commands;
 
-    static void help();
+    void help();
     void exit();
     void checkdb();
     void certsocket(const std::string& arg);
+    void TableTest(const std::string& args);
 };
 
 

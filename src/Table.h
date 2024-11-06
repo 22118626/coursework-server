@@ -8,6 +8,7 @@
 #include <string>
 #include <memory>
 #include "Record.h"
+#include "FileManager.h"
 
 
 class Table {
@@ -21,6 +22,11 @@ public:
     void printRecords() const;
 
 
+   std::string tableName;
+private:
+    FileManager FM;
+
+    void initializeTable();
 };
 
 

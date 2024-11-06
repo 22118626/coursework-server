@@ -15,6 +15,7 @@ class FileManager {
 public:
     FileManager();
     FileManager(const std::string &filePath);
+    FileManager(const std::string &filePath, int i);
 
     ~FileManager();
 
@@ -29,6 +30,10 @@ public:
     void closeFile();
 
     void appendAtTheEnd(const std::vector<uint8_t>& data);
+
+    std::uint16_t type;
+    std::string name;
+    void setPointerLoc(fpos_t addr);
 
 
 private:

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include "Table.h"
 
 
 
@@ -17,6 +18,7 @@ CLIApp::CLIApp() {
     commands["exit"] = [this](const std::string&) {this->exit();};
     commands["checkdb"] = [this](const std::string&) {this->checkdb();};
     commands["certServer"] = [this](const std::string& args) {this->certsocket(args);};
+    commands["TableTest"] = [this](const std::string& args) {this->TableTest(args);};
     this->running=true;
 }
 
@@ -97,9 +99,18 @@ void CLIApp::checkdb() {
 }
 
 void CLIApp::help() {
-    std::cout << std::left << std::setw(32) << "command" << std::setw(64) <<"description" << std::endl <<
+    /*std::cout << std::left << std::setw(32) << "command" << std::setw(64) <<"description" << std::endl <<
     std::setw(32) << "connect <port>" << std::setw(64) <<"Used to start the listening socket with <port>" << std::endl <<
     std::setw(32) << "stop" << std::setw(64) <<"stops the socket from running" << std::endl <<
-    std::setw(32) << "exit" << std::setw(64) <<"exits the program" << std::endl;
+    std::setw(32) << "exit" << std::setw(64) <<"exits the program" << std::endl;*/
+
+    for (const auto &pair : commands) {
+        const std::string &commandName = pair.first;
+        std::cout << commandName << std::endl;
+    }
+}
+
+void CLIApp::TableTest(const std::string& args) {
+    Table table(".\\login.bdb");
 }
 
