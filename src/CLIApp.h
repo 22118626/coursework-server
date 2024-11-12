@@ -33,6 +33,8 @@ private:
     void checkdb();
     void certsocket(const std::string& arg);
     void TableTest(const std::string& args);
+    static std::unordered_map<std::string, std::string> CommandParser(const std::string &args);
+
 };
 
 

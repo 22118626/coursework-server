@@ -47,12 +47,14 @@ void Table::initializeTable() {
         std::string fieldName = this->FM.readNextString();
         uint8_t fieldType = this->FM.readNextUint8_t();
         uint16_t dataLength = this->FM.readNextUint16_t();
-        addDataTypeToRecord(&this->record, fieldName, fieldType, dataLength);
+        addDataTypeToRecord(&this->structureRecord, fieldName, fieldType, dataLength);
         std::cout << this->FM.currentPointerPosition() << std::endl;
     }
-    std::cout << "Finished reading record metadata: " << std::endl << Record::printRecord(this->record, this->recordFieldType) << std::endl;
-
+    std::cout << "Finished reading record metadata: " << std::endl <<
+    Record::printRecords(this->structureRecord,this->recordFieldType) << std::endl;
+    std::cout << std::to_string(structureRecord.returnvalueFromindex<Int32Field >(structureRecord.fieldName("LoginID")).value);
 }
+
 
 void Table::addRecord(std::shared_ptr<Record> record) {
 

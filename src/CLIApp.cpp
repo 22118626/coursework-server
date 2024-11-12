@@ -111,6 +111,33 @@ void CLIApp::help() {
 }
 
 void CLIApp::TableTest(const std::string& args) {
-    Table table(".\\login.bdb");
+    auto map = CommandParser(args);
+    std::string file;
+
+    for (auto pair : map) {
+        std::cout << pair.first << "  " << pair.second << std::endl;
+        if(pair.first == "f" || pair.first == "file") file = pair.second;
+    }
+
+    if(!file.empty()) Table table(file);
 }
 
+
+
+/* returns a key-value pair table to the caller after parsing individual flags and their following value pair, the function
+ * returns an empty string ("") if no value is associated with the flag*/
+std::unordered_map<std::string, std::string> CLIApp::CommandParser(const std::string &args) {
+    std::istringstream iss(args);
+    std::string argument;
+    std::string currentFlag;
+    std::unordered_map<std::string, std::string> commandpairs;
+
+    while (iss >> argument) {
+        if (argument.starts_with("--"))     currentFlag = argument.substr(2);
+        else if (argument.starts_with("-") && argument.size() > 1)       currentFlag = argument.substr(1);
+        else if (!currentFlag.empty())      commandpairs[currentFlag] = argument;
+        else    commandpairs[currentFlag] = "";
+
+    }
+    return commandpairs;
+}

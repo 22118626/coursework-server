@@ -27,7 +27,7 @@ private:
     FileManager FM;
 
     void initializeTable();
-    Record record;
+    Record structureRecord;
     std::vector<int> recordFieldType;
 
     void addDataTypeToRecord(Record *record, const std::string &name, int type, int dataLength);

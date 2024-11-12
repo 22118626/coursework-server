@@ -5,10 +5,11 @@
 #include <utility>
 #include <vector>
 #include <memory>
+#include <variant>
 
 
 
-struct BaseType {
+/*struct BaseType {
     std::string name;
     BaseType(std::string name) : name(std::move(name)) {}
     virtual ~BaseType() = default;
@@ -43,15 +44,77 @@ struct ReferenceField : BaseType {
 struct BoolField : BaseType {
     bool value;
     BoolField(std::string name, bool val) : BaseType(std::move(name)), value(val) {}
+};*/
+
+struct BaseType {
+    std::string name;
+    BaseType(std::string name) : name(std::move(name)) {}
+    virtual ~BaseType() = default;
+
+    // Virtual function to get the value as a variant
+    virtual std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool, std::pair<std::string, uint32_t>> getValue() const = 0;
 };
+
+template <typename T>
+struct Field : public BaseType {
+    T value;
+    Field(std::string name, T val) : BaseType(std::move(name)), value(val) {}
+
+    std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool, std::pair<std::string, uint32_t>> getValue() const override {
+        return value;
+    }
+};
+
+struct StringField : Field<std::string> {
+    uint16_t dataLength;  // Additional member for string field
+
+    StringField(std::string name, std::string val, uint16_t dataLength)
+            : Field<std::string>(std::move(name), std::move(val)), dataLength(dataLength) {}
+
+    // Override to include dataLength as part of the returned value if needed
+    std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool, std::pair<std::string, uint32_t>> getValue() const override {
+        return value;  // Return the string value only; dataLength can be accessed separately if needed
+    }
+};
+
+struct ReferenceField : Field<std::pair<std::string, uint32_t>> {
+    std::string refName;  // First part of the pair
+    uint32_t primaryKeyValue;  // Second part of the pair
+
+    ReferenceField(std::string name, std::string refName, uint32_t primaryKeyValue)
+            : Field<std::pair<std::string, uint32_t>>(std::move(name), {std::move(refName), primaryKeyValue}),
+              refName(std::move(refName)), primaryKeyValue(primaryKeyValue) {}
+
+    // Override to include refName and primaryKeyValue as part of the returned value
+    std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool, std::pair<std::string, uint32_t>> getValue() const override {
+        return value;  // Return the reference value as a pair
+    }
+};
+
+using Int16Field = Field<int16_t>;
+using UInt16Field = Field<uint16_t>;
+using Int32Field = Field<int32_t>;
+using UInt32Field = Field<uint32_t>;
+using BoolField = Field<bool>;
 
 
 class Record {
 public:
     virtual ~Record() = default;
-
+    Record* structure;
     std::vector<std::shared_ptr<BaseType>> record; //shared_ptr for polymorphism
-    static std::string printRecord(Record recordObj, std::vector<int> typesArray);
+    std::vector<int> typeArray;
+
+    static std::string printRecords(Record recordObj, std::vector<int> typesArray);
+    int fieldName(const std::string &name);
+
+    template <typename T>
+    auto returnvalueFromindex(int index) {
+        auto field = std::dynamic_pointer_cast<Field<T>>(record.at(index));
+        std::cout << field << std::endl;
+        if(field) return field->value;
+        else throw std::runtime_error("Invalid type. index: "+std::to_string(index));
+    }
 };
 
 #endif //COURSEWORK_SERVER_RECORD_H
