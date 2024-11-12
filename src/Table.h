@@ -12,7 +12,6 @@
 
 
 class Table {
-
 public:
     std::string tableFilePath;
 
@@ -21,12 +20,17 @@ public:
     virtual void addRecord(std::shared_ptr<Record> record);
     void printRecords() const;
 
-
    std::string tableName;
+
 private:
+
     FileManager FM;
 
     void initializeTable();
+    Record record;
+    std::vector<int> recordFieldType;
+
+    void addDataTypeToRecord(Record *record, const std::string &name, int type, int dataLength);
 };
 
 

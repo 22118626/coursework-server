@@ -21,6 +21,8 @@ public:
 
     bool openFile(const std::string& filePath);
     void readHeader();
+    int8_t readNextInt8_t();
+    uint8_t readNextUint8_t();
     int16_t readNextInt16_t();
     uint16_t readNextUint16_t();
     int32_t readNextInt32_t();
@@ -31,18 +33,20 @@ public:
 
     void appendAtTheEnd(const std::vector<uint8_t>& data);
 
+    fpos_t dataStart{};
     std::uint16_t type;
     std::string name;
     void setPointerLoc(fpos_t addr);
 
+    fpos_t currentPointerPosition();
 
 private:
-    fpos_t dataStart{};
     fpos_t pointerpos{};
     std::ifstream FileStream;
 
     std::ifstream fileData;
     const std::string &filePath;
+
 };
 
 

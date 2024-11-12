@@ -16,7 +16,7 @@ FileManager::FileManager(const std::string& filePath,int i) : filePath(filePath)
 }
 
 void FileManager::readHeader() {
-    dataStart =  static_cast<fpos_t>(readNextUint32_t());
+    this->dataStart =  static_cast<fpos_t>(readNextUint32_t());
     this->type = readNextInt16_t();
     this->name = readNextString();
     //std::cout << "data->" << readNextString() <<"\t"<< readNextInt16_t() <<"<- end of data" << std::endl;
@@ -24,7 +24,7 @@ void FileManager::readHeader() {
 
 
 FileManager::~FileManager() {
-    std::cout << "Destructor called" << std::endl;
+    std::cout << this <<" Destructor called" << std::endl;
 }
 
 bool FileManager::openFile(const std::string& filePath) {
@@ -44,7 +44,16 @@ void FileManager::setPointerLoc(fpos_t addr) {
     this->pointerpos = addr;
     FileStream.seekg(addr);
 }
-
+uint8_t FileManager::readNextUint8_t() {
+    uint8_t value;
+    FileStream.read(reinterpret_cast<char*>(&value), sizeof(uint8_t));
+    return value;
+}
+int8_t FileManager::readNextInt8_t() {
+    int8_t value;
+    FileStream.read(reinterpret_cast<char*>(&value), sizeof(int8_t));
+    return value;
+}
 int16_t FileManager::readNextInt16_t() {
     int16_t value;
     FileStream.read(reinterpret_cast<char*>(&value), sizeof(int16_t));
@@ -66,14 +75,20 @@ int32_t FileManager::readNextInt32_t() {
     return value;
 }
 
-
+// reads a null terminated string of arbitrary length. that has a max length.
 std::string FileManager::readNextString() {
-    uint16_t stringLength;
-    FileStream.read(reinterpret_cast<char*>(&stringLength), sizeof(uint16_t));
-    std::vector<char> buffer(stringLength);
-    FileStream.read(buffer.data(), stringLength);
-    FileStream.seekg(FileStream.tellg()+ std::ifstream::pos_type(1) , std::ios::beg);
-    return buffer.data();
+    uint16_t maxSizeOfString;
+    fpos_t startStringPos = FileStream.tellg() + std::ifstream::pos_type(2);
+    std::cout << "startStringPos: " << startStringPos << std::endl;
+    FileStream.read(reinterpret_cast<char*>(&maxSizeOfString), sizeof(uint16_t));
+    std::vector<char> buffer(maxSizeOfString);
+
+    FileStream.read(buffer.data(), maxSizeOfString);
+    FileStream.seekg(startStringPos+ std::ifstream::pos_type(maxSizeOfString) , std::ios::beg);
+
+    std::cout << "maxSizeOfString: " << maxSizeOfString  << "\tnewpointerPos: " << FileStream.tellg() <<std::endl;
+    return std::string(buffer.data());
+    //return std::string without trailing 0x00
 }
 
 void FileManager::appendAtTheEnd(const std::vector<uint8_t> &data) {
@@ -89,6 +104,8 @@ void FileManager::appendAtTheEnd(const std::vector<uint8_t> &data) {
         std::cout << "error when writing to file " << this->filePath << std::endl;
     }
 }
+
+fpos_t FileManager::currentPointerPosition() {return FileStream.tellg();}
 
 void FileManager::closeFile() {
     FileStream.close();
