@@ -6,6 +6,8 @@
 #include <vector>
 #include <memory>
 #include <variant>
+#include <fstream>
+#include <cstring>
 
 
 
@@ -45,6 +47,13 @@ struct BoolField : BaseType {
     bool value;
     BoolField(std::string name, bool val) : BaseType(std::move(name)), value(val) {}
 };*/
+
+struct FieldData {
+    std::string name;
+    uint8_t type;
+    uint16_t length;
+
+};
 
 struct BaseType {
     std::string name;
@@ -98,20 +107,49 @@ using UInt32Field = Field<uint32_t>;
 using BoolField = Field<bool>;
 
 
-class Record {
+struct Record {
+    std::vector<uint8_t> data;
+
+
+    template <typename T>
+    T getFieldData(size_t offset) const {
+        T value;
+        std::memcpy(&value, &data[offset], sizeof(T));
+        return value;
+    }
+    template <typename T>
+    Record& modifyField(Record* record, T dataToChange, size_t offset) {
+        std::memcpy(record->data[offset] , dataToChange, sizeof(T));
+        return *record;
+    }
+    template <typename T>
+    Record& appendField(Record* record, T dataChange) {
+        std::memcpy(record->data.size(), dataChange, sizeof(T));
+        return *record;
+    }
+};
+
+
+class RecordClass {
 public:
-    virtual ~Record() = default;
     Record* structure;
     std::vector<std::shared_ptr<BaseType>> record; //shared_ptr for polymorphism
     std::vector<int> typeArray;
+
+    virtual ~RecordClass() = default;
 
     static std::string printRecords(Record recordObj, std::vector<int> typesArray);
     int fieldName(const std::string &name);
 
     template <typename T>
     auto returnvalueFromindex(int index) {
+        for (const auto& item : record) {
+            std::cout << typeid(*item).name() << std::endl; // Print the type of each item in record
+        }
+        std::cout << "Template type T: " << typeid(Field<T>).name() << std::endl;
+        std::cout << "record type: " << typeid(std::dynamic_pointer_cast<Field<T>&>(record.at(index))).name() << std::endl;
         auto field = std::dynamic_pointer_cast<Field<T>>(record.at(index));
-        std::cout << field << std::endl;
+        std::cout << "Field at index " << index << ": " << field << std::endl;
         if(field) return field->value;
         else throw std::runtime_error("Invalid type. index: "+std::to_string(index));
     }

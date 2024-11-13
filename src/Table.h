@@ -27,10 +27,13 @@ private:
     FileManager FM;
 
     void initializeTable();
-    Record structureRecord;
-    std::vector<int> recordFieldType;
+    std::vector<FieldData> structureRecord; // arbitrary length array of [{String name, uint8 type, uint16 length}]
+    Record record;
+    int recordSize = 0;
 
     void addDataTypeToRecord(Record *record, const std::string &name, int type, int dataLength);
+
+    Record readRecord(int index);
 };
 
 

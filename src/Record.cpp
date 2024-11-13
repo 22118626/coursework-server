@@ -4,7 +4,7 @@
 
 #include "Record.h"
 
-std::string Record::printRecords(Record recordObj, std::vector<int> typesArray) {
+/*std::string Record::printRecords(Record recordObj, std::vector<int> typesArray) {
     std::string returnString = "";
     for(int i = 0 ; i < recordObj.record.size() ; i++) {
         std::cout << std::to_string(i) << "\t" << recordObj.record.at(i) << "\t" << typesArray[i] << std::endl;
@@ -22,7 +22,7 @@ std::string Record::printRecords(Record recordObj, std::vector<int> typesArray) 
         }
     }
     return returnString;
-}
+}*/
 
 /*auto Record::returnvalueFromindex(int index) {
     return this->record.at(0)->value;
@@ -30,11 +30,11 @@ std::string Record::printRecords(Record recordObj, std::vector<int> typesArray) 
 }*/
 
 
-int Record::fieldName(const std::string& name) {
+/*int Record::fieldName(const std::string& name) {
     for (int i = 0; i < this->record.size(); i++) {
         if (this->record.at(i)->name == name) {
             return i; // return the index of the field
         }
     }
     return -1; // Return -1 if not found
-}
+}*/

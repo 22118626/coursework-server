@@ -29,6 +29,7 @@ public:
     uint32_t readNextUint32_t();
     std::string readNextString();
     bool readNextBool();
+    std::vector<uint8_t> readBytes(unsigned int bytes);
     void closeFile();
 
     void appendAtTheEnd(const std::vector<uint8_t>& data);
