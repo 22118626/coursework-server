@@ -4,6 +4,8 @@
 
 #include "Table.h"
 #include <vector>
+#include <strings.h>
+#include <iomanip>
 
 
 /*enum recordTypes {
@@ -42,17 +44,26 @@ void Table::initializeTable() {
     "name: " << this->FM.name << std::endl <<
     "numberOfFields: " << NumOfFields << std::endl;
 
-    /*LoginID uint32| Username String(50) | HashedPassword String(128)*/
+    /*LoginID uint32| Username String(50) | HashedPassword String(64Bytes/256bits)*/
     for(int i = 0; i < NumOfFields; i++) {
-        std::string fieldName = this->FM.readNextString();
-        uint8_t fieldType = this->FM.readNextUint8_t();
-        uint16_t dataLength = this->FM.readNextUint16_t();
-        addDataTypeToRecord(&this->structureRecord, fieldName, fieldType, dataLength);
+        FieldData fieldData = {this->FM.readNextString(), this->FM.readNextUint8_t(),this->FM.readNextUint16_t()};
+        structureRecord.push_back(fieldData);
         std::cout << this->FM.currentPointerPosition() << std::endl;
     }
-    std::cout << "Finished reading record metadata: " << std::endl <<
-    Record::printRecords(this->structureRecord,this->recordFieldType) << std::endl;
-    std::cout << std::to_string(structureRecord.returnvalueFromindex<Int32Field >(structureRecord.fieldName("LoginID")).value);
+    this->recordSize = 0;
+    for ( auto i : structureRecord) {
+        std::cout << "name: " << i.name << "\tlength: " << i.length << std::endl;
+        this->recordSize += i.length;
+    }
+    std::cout << "Finished reading record metadata. RecordSize: " << this->recordSize << std::endl;
+    /*Record::printRecords(this->structureRecord,this->recordFieldType) << std::endl;
+    record1.record.push_back(std::make_shared<Int32Field>("LoginID", 0x2052));
+    std::cout << typeid(*record1.record.at(0)).name() << std::endl;
+    record1.record.push_back(std::make_shared<StringField>("Username", "0x2052", 50));
+    record1.record.push_back(std::make_shared<StringField>("HashedPassword", "0x2052fc64cb3a", 128));
+    std::cout << std::to_string(record1.returnvalueFromindex<Int32Field>(structureRecord.fieldName("LoginID")).value);*/
+    Record recordIndexed1 = this->readRecord(0);
+
 }
 
 
@@ -60,7 +71,19 @@ void Table::addRecord(std::shared_ptr<Record> record) {
 
 }
 
-void Table::addDataTypeToRecord(Record* record, const std::string &name, int type, int dataLength) {
+// 1 indexed
+Record Table::readRecord(int index) {
+    this->FM.setPointerLoc(this->FM.dataStart + index * this->recordSize);
+    auto vec = this->FM.readBytes(recordSize);
+    for (auto byte : vec) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << " ";
+    }
+    std::cout << std::endl;
+    Record record = {};
+    return record;
+}
+
+/*void Table::addDataTypeToRecord(Record* record, const std::string &name, int type, int dataLength) {
     switch (type) {
         case 1:
             record->record.push_back(std::make_shared<Int16Field>(name, 0x00));
@@ -86,5 +109,5 @@ void Table::addDataTypeToRecord(Record* record, const std::string &name, int typ
             std::cout <<"hip hip hooray... disaster has been prevented?" << std::endl;
     }
     return;
-}
+}*/
 

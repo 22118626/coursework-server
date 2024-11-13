@@ -74,6 +74,12 @@ int32_t FileManager::readNextInt32_t() {
     FileStream.read(reinterpret_cast<char *>(&value), sizeof(int32_t));
     return value;
 }
+std::vector<uint8_t> FileManager::readBytes(unsigned int bytes) {
+    std::cout << "readBytes bytes: "<<bytes << std::endl <<"at pointer localtion: " << FileStream.tellg() << std::endl;
+    std::vector<uint8_t> value(bytes);
+    FileStream.read(reinterpret_cast<char *>(value.data()), bytes);
+    return value;
+}
 
 // reads a null terminated string of arbitrary length. that has a max length.
 std::string FileManager::readNextString() {
