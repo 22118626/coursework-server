@@ -71,7 +71,6 @@ void Table::addRecord(std::shared_ptr<Record> record) {
 
 }
 
-// 1 indexed
 Record Table::readRecord(int index) {
     this->FM.setPointerLoc(this->FM.dataStart + index * this->recordSize);
     auto vec = this->FM.readBytes(recordSize);
@@ -79,35 +78,58 @@ Record Table::readRecord(int index) {
         std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << " ";
     }
     std::cout << std::endl;
+    int offset = 0;int offset = 0;
+    for(auto field : this->structureRecord) {
+        /*std::cout << field.name << std::endl;
+        std::cout << field.length << std::endl;
+        std::cout << field.type << std::endl;*/
+        std::cout << "offset: " << offset << std::endl;
+
+        if(field.type == 4 || field.type == 3) {
+            std::cout << field.name << " :" << std::string(reinterpret_cast<const char*>(vec.data()) + offset, field.length) << std::endl;
+        } else if (field.type == 2 || field.type == 1) { // Numeric type
+            if (field.length == 4) { //int32_t
+                int value = *reinterpret_cast<const int*>(vec.data() + offset);
+                std::cout << "value: " << std::dec << value << std::endl;
+            } else if(field.length == 2) {//int16_t
+                int value = *reinterpret_cast<const short*>(vec.data() + offset);
+                std::cout << "value: " << std::dec << value << std::endl;
+            }
+            else {
+                std::cout << "[Unsupported numeric length]";
+            }
+        } else {
+            std::cout << "[Unknown field type]";
+        }
+        offset += field.length;
+    }
+    for(auto field : this->structureRecord) {
+        /*std::cout << field.name << std::endl;
+        std::cout << field.length << std::endl;
+        std::cout << field.type << std::endl;*/
+        std::cout << "offset: " << offset << std::endl;
+
+        if(field.type == 4 || field.type == 3) {
+            std::cout << field.name << " :" << std::string(reinterpret_cast<const char*>(vec.data()) + offset, field.length) << std::endl;
+        } else if (field.type == 2 || field.type == 1) { // Numeric type
+            if (field.length == 4) { //int32_t
+                int value = *reinterpret_cast<const int*>(vec.data() + offset);
+                std::cout << "value: " << std::dec << value << std::endl;
+            } else if(field.length == 2) {//int16_t
+                int value = *reinterpret_cast<const short*>(vec.data() + offset);
+                std::cout << "value: " << std::dec << value << std::endl;
+            }
+            else {
+                std::cout << "[Unsupported numeric length]";
+            }
+        } else {
+            std::cout << "[Unknown field type]";
+        }
+        offset += field.length;
+    }
+    std::cout << std::endl;
     Record record = {};
     return record;
 }
 
-/*void Table::addDataTypeToRecord(Record* record, const std::string &name, int type, int dataLength) {
-    switch (type) {
-        case 1:
-            record->record.push_back(std::make_shared<Int16Field>(name, 0x00));
-            recordFieldType.push_back(1);
-            break;
-        case 2:
-            record->record.push_back(std::make_shared<Int32Field>(name, 0x00));
-            recordFieldType.push_back(2);
-            break;
-        case 3:
-            record->record.push_back(std::make_shared<StringField>(name, "", dataLength));
-            recordFieldType.push_back(3);
-            break;
-        case 4:
-            record->record.push_back(std::make_shared<ReferenceField>(name, "", 0x00));
-            recordFieldType.push_back(4);
-            break;
-        case 5:
-            record->record.push_back(std::make_shared<BoolField>(name, false));
-            recordFieldType.push_back(4);
-            break;
-        default:
-            std::cout <<"hip hip hooray... disaster has been prevented?" << std::endl;
-    }
-    return;
-}*/
 
