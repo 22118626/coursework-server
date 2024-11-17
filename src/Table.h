@@ -21,6 +21,7 @@ public:
     explicit Table(const std::string& filePath);
     explicit Table();
     virtual ~Table()= default;
+    Table& operator=(const Table&) = default;
     //virtual void addRecord(std::shared_ptr<Record> record);
     //void printRecords() const;
 

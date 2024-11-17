@@ -17,6 +17,8 @@ public:
     FileManager(const std::string &filePath);
     FileManager(const std::string &filePath, int i);
 
+    FileManager& operator=(const FileManager&) = default; // Because for god knows reason it was removed
+
     ~FileManager();
 
     bool openFile(const std::string& filePath);

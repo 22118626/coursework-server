@@ -34,29 +34,27 @@ void Table::initializeTable() {
         std::cout << "oppening file (" << this->tableFilePath << ") failed" << std::endl;
         return;
     }
-
+    this->FM.setPointerLoc(0);
     this->FM.readHeader();
-    //fpos_t recordMetadataType = this->FM.readNextInt32_t();
-    //this->FM.setPointerLoc(recordMetadataType);
+
     int16_t NumOfFields = this->FM.readNextInt16_t();
     std::vector<std::string> fields(NumOfFields,"");
     this->tableName = this->FM.name;
-    std::cout << this->FM.currentPointerPosition() << std::endl;
-    //std::cout << this->tableName << std::endl << fields.data() << std::endl;
-    std::cout << "DataStart: " << this->FM.dataStart << std::endl <<
+    //std::cout << this->FM.currentPointerPosition() << std::endl;
+    /*std::cout << "DataStart: " << this->FM.dataStart << std::endl <<
     "Type: " << this->FM.type << std::endl <<
     "name: " << this->FM.name << std::endl <<
-    "numberOfFields: " << NumOfFields << std::endl;
+    "numberOfFields: " << NumOfFields << std::endl;*/
 
     /*LoginID uint32| Username String(50) | HashedPassword String(64Bytes/256bits)*/
     for(int i = 0; i < NumOfFields; i++) {
         FieldData fieldData = {this->FM.readNextString(), this->FM.readNextUint8_t(),this->FM.readNextUint16_t()};
         structureRecord.push_back(fieldData);
-        std::cout << this->FM.currentPointerPosition() << std::endl;
+        //std::cout << this->FM.currentPointerPosition() << std::endl;
     }
     this->recordSize = 0;
     for ( auto i : structureRecord) {
-        std::cout << "name: " << i.name << "\tlength: " << i.length << std::endl;
+        //std::cout << "name: " << i.name << "\tlength: " << i.length << std::endl;
         this->recordSize += i.length;
     }
     std::cout << "Finished reading record metadata. RecordSize: " << this->recordSize << std::endl;

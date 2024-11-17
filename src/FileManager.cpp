@@ -28,13 +28,13 @@ FileManager::~FileManager() {
 }
 
 bool FileManager::openFile(const std::string& filePath) {
-    std::cout << "opening file (" << filePath <<")"<<std::endl;
+    std::cout << "(FM) opening file (" << filePath <<")"<<std::endl;
     try {
         if(std::filesystem::exists(filePath)) {
             FileStream.open(filePath, std::ios::in | std::ios::binary);
             return true;
         }
-        std::cout << "\"" << filePath << "\" does not exist" << std::endl;
+        //std::cout << "\"" << filePath << "\" does not exist" << std::endl;
         return false;
     } catch(const std::exception& exception) {
         return false;
@@ -76,7 +76,7 @@ int32_t FileManager::readNextInt32_t() {
     return value;
 }
 std::vector<uint8_t> FileManager::readBytes(unsigned int bytes) {
-    std::cout << "readBytes bytes: "<<bytes << std::endl <<"at pointer localtion: " << FileStream.tellg() << std::endl;
+    //std::cout << "readBytes bytes: "<<bytes << std::endl <<"at pointer localtion: " << FileStream.tellg() << std::endl;
     std::vector<uint8_t> value(bytes);
     FileStream.read(reinterpret_cast<char *>(value.data()), bytes);
     return value;
@@ -86,14 +86,14 @@ std::vector<uint8_t> FileManager::readBytes(unsigned int bytes) {
 std::string FileManager::readNextString() {
     uint16_t maxSizeOfString;
     fpos_t startStringPos = FileStream.tellg() + std::ifstream::pos_type(2);
-    std::cout << "startStringPos: " << startStringPos << std::endl;
+    //std::cout << "startStringPos: " << startStringPos << std::endl;
     FileStream.read(reinterpret_cast<char*>(&maxSizeOfString), sizeof(uint16_t));
     std::vector<char> buffer(maxSizeOfString);
 
     FileStream.read(buffer.data(), maxSizeOfString);
     FileStream.seekg(startStringPos+ std::ifstream::pos_type(maxSizeOfString) , std::ios::beg);
 
-    std::cout << "maxSizeOfString: " << maxSizeOfString  << "\tnewpointerPos: " << FileStream.tellg() <<std::endl;
+    //std::cout << "maxSizeOfString: " << maxSizeOfString  << "\tnewpointerPos: " << FileStream.tellg() <<std::endl;
     return std::string(buffer.data());
     //return std::string without trailing 0x00
 }
