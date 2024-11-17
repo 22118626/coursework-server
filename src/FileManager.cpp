@@ -24,10 +24,11 @@ void FileManager::readHeader() {
 
 
 FileManager::~FileManager() {
-    std::cout << this <<" Destructor called" << std::endl;
+    std::cout << "FileManager: " << this <<" Destructor called" << std::endl;
 }
 
 bool FileManager::openFile(const std::string& filePath) {
+    std::cout << "opening file (" << filePath <<")"<<std::endl;
     try {
         if(std::filesystem::exists(filePath)) {
             FileStream.open(filePath, std::ios::in | std::ios::binary);
@@ -116,4 +117,12 @@ fpos_t FileManager::currentPointerPosition() {return FileStream.tellg();}
 void FileManager::closeFile() {
     FileStream.close();
 }
+unsigned long long int FileManager::getFileSize() {
+    return std::filesystem::file_size(this->filePath);
+}
+
+void FileManager::changeFilePath(const std::string &newPath) {
+    this->filePath = newPath;
+}
+
 

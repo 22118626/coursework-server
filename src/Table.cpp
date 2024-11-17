@@ -4,8 +4,7 @@
 
 #include "Table.h"
 #include <vector>
-#include <strings.h>
-#include <iomanip>
+
 
 
 /*enum recordTypes {
@@ -21,7 +20,12 @@
 
 Table::Table(const std::string &filePath) :tableFilePath(filePath), FM(filePath,0) {
     std::cout << this->tableFilePath << std::endl;
-    this->initializeTable();
+}
+Table::Table() :FM("",0) {};
+
+void Table::setFilePath(std::string path) {
+    this->tableFilePath = path;
+     FM.changeFilePath(path);
 }
 
 void Table::initializeTable() {
@@ -56,80 +60,123 @@ void Table::initializeTable() {
         this->recordSize += i.length;
     }
     std::cout << "Finished reading record metadata. RecordSize: " << this->recordSize << std::endl;
-    /*Record::printRecords(this->structureRecord,this->recordFieldType) << std::endl;
-    record1.record.push_back(std::make_shared<Int32Field>("LoginID", 0x2052));
-    std::cout << typeid(*record1.record.at(0)).name() << std::endl;
-    record1.record.push_back(std::make_shared<StringField>("Username", "0x2052", 50));
-    record1.record.push_back(std::make_shared<StringField>("HashedPassword", "0x2052fc64cb3a", 128));
-    std::cout << std::to_string(record1.returnvalueFromindex<Int32Field>(structureRecord.fieldName("LoginID")).value);*/
-    Record recordIndexed1 = this->readRecord(0);
-
 }
 
 
-void Table::addRecord(std::shared_ptr<Record> record) {
-
-}
-
-Record Table::readRecord(int index) {
+std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool> Table::readRecord(int index) {
     this->FM.setPointerLoc(this->FM.dataStart + index * this->recordSize);
     auto vec = this->FM.readBytes(recordSize);
-    for (auto byte : vec) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << " ";
-    }
-    std::cout << std::endl;
-    int offset = 0;int offset = 0;
-    for(auto field : this->structureRecord) {
-        /*std::cout << field.name << std::endl;
-        std::cout << field.length << std::endl;
-        std::cout << field.type << std::endl;*/
+
+    int offset = 0;
+    for (auto& field : this->structureRecord) {
         std::cout << "offset: " << offset << std::endl;
 
-        if(field.type == 4 || field.type == 3) {
-            std::cout << field.name << " :" << std::string(reinterpret_cast<const char*>(vec.data()) + offset, field.length) << std::endl;
-        } else if (field.type == 2 || field.type == 1) { // Numeric type
-            if (field.length == 4) { //int32_t
-                int value = *reinterpret_cast<const int*>(vec.data() + offset);
-                std::cout << "value: " << std::dec << value << std::endl;
-            } else if(field.length == 2) {//int16_t
-                int value = *reinterpret_cast<const short*>(vec.data() + offset);
-                std::cout << "value: " << std::dec << value << std::endl;
-            }
-            else {
-                std::cout << "[Unsupported numeric length]";
+        if (field.type == 4 || field.type == 3) {
+            auto value = std::string(reinterpret_cast<const char*>(vec.data()) + offset, field.length);
+            std::cout << field.name << ": " << value << std::endl;
+            return value;
+        } else if (field.type == 2 || field.type == 1) {
+            if (field.length == 4) {
+                int32_t value = *reinterpret_cast<const int32_t*>(vec.data() + offset);
+                std::cout << field.name << ": " << std::dec << value << std::endl;
+                return value;
+            } else if (field.length == 2) {
+                int16_t value = *reinterpret_cast<const int16_t*>(vec.data() + offset);
+                std::cout << field.name << ": " << std::dec << value << std::endl;
+                return value;
             }
         } else {
-            std::cout << "[Unknown field type]";
+            std::cout << "[Unknown field type]" << std::endl;
+            throw std::invalid_argument("Unknown field type");
         }
-        offset += field.length;
-    }
-    for(auto field : this->structureRecord) {
-        /*std::cout << field.name << std::endl;
-        std::cout << field.length << std::endl;
-        std::cout << field.type << std::endl;*/
-        std::cout << "offset: " << offset << std::endl;
 
-        if(field.type == 4 || field.type == 3) {
-            std::cout << field.name << " :" << std::string(reinterpret_cast<const char*>(vec.data()) + offset, field.length) << std::endl;
-        } else if (field.type == 2 || field.type == 1) { // Numeric type
-            if (field.length == 4) { //int32_t
-                int value = *reinterpret_cast<const int*>(vec.data() + offset);
-                std::cout << "value: " << std::dec << value << std::endl;
-            } else if(field.length == 2) {//int16_t
-                int value = *reinterpret_cast<const short*>(vec.data() + offset);
-                std::cout << "value: " << std::dec << value << std::endl;
-            }
-            else {
-                std::cout << "[Unsupported numeric length]";
-            }
-        } else {
-            std::cout << "[Unknown field type]";
-        }
         offset += field.length;
     }
-    std::cout << std::endl;
-    Record record = {};
-    return record;
+
+    throw std::runtime_error("Record parsing failed");
+}
+
+/*std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool> Table::searchTableByFieldNameAndValue(
+        const std::vector<FieldData>& structure, const std::string& fieldName) {
+
+    // Find the field by name
+    auto itterator = std::find_if(structure.begin(), structure.end(), [&](const FieldData& field) {
+        return field.name == fieldName;
+    });
+
+    // Ensure the field is found
+    if (itterator == structure.end()) {
+        throw std::runtime_error("Field name not found in structure");
+    }
+
+    // Find the index of the field
+    int indexToSearch = std::distance(structure.begin(), itterator);
+    std::cout << "Found field at index: " << indexToSearch << std::endl;
+
+    try {
+        // Read the record of type T at the given index
+        auto result = readRecord(indexToSearch);
+
+        return result; // Return the result (which is a std::variant)
+    } catch (const std::exception& ex) {
+        std::cerr << "Error reading record: " << ex.what() << std::endl;
+        throw; // Re-throw the exception to the caller
+    }
+}*/
+
+Record Table::searchTableByFieldNameAndValue(const std::vector<FieldData>& structure, const std::string& fieldName, const std::string& fieldValue) {
+    size_t totalRecords = (this->FM.getFileSize() - this->FM.dataStart) / recordSize;
+    this->FM.setPointerLoc(this->FM.dataStart);
+
+    for (size_t index = 0; index < totalRecords; ++index) {
+        std::vector<uint8_t> recordBytes = this->FM.readBytes(recordSize);
+
+        Record record;
+        record.data = recordBytes;
+
+        size_t offset = 0;
+        bool found = false;
+
+        for (const auto& field : structure) {
+            if (field.name == fieldName) {
+                if (field.type == 4 || field.type == 3) {
+                    std::string fieldData = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length);
+                    fieldData.erase(std::remove(fieldData.begin(), fieldData.end(), '\0'), fieldData.end());
+                    std::cout << fieldData << std::endl;
+                    if (fieldData == fieldValue) {
+                        found = true;
+                    }
+                }
+                else if (field.type == 2 || field.type == 1) {
+                    if (field.length == 4) {  // int32_t
+                        int32_t fieldData = *reinterpret_cast<const int32_t*>(&record.data[offset]);
+                        if (std::to_string(fieldData) == fieldValue) {
+                            found = true;
+                        }
+                    } else if (field.length == 2) {  // int16_t
+                        int16_t fieldData = *reinterpret_cast<const int16_t*>(&record.data[offset]);
+                        if (std::to_string(fieldData) == fieldValue) {
+                            found = true;
+                        }
+                    }
+                }
+            }
+            offset += field.length;
+
+            if (found) {
+                std::cout<<"found record: " << std::endl;for (const auto& byte : record.data) {std::cout<< std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";}std::cout <<std::endl;
+                return record;
+            }
+        }
+    }
+
+    // If no matching record is found, throw an exception or return a default record
+    throw std::runtime_error("Field value not found in any record");
+}
+
+void Table::debugSearch(const std::string& FieldName, const std::string& FieldValue) {
+    auto result = searchTableByFieldNameAndValue(this->structureRecord, "Username", "Gilbert");
+    std::cout << "result: " << result.data.data() << std::endl;
 }
 
 

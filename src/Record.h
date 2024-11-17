@@ -8,7 +8,7 @@
 #include <variant>
 #include <fstream>
 #include <cstring>
-
+#include <iomanip>
 
 
 /*struct BaseType {
@@ -60,7 +60,6 @@ struct BaseType {
     BaseType(std::string name) : name(std::move(name)) {}
     virtual ~BaseType() = default;
 
-    // Virtual function to get the value as a variant
     virtual std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool, std::pair<std::string, uint32_t>> getValue() const = 0;
 };
 
@@ -75,28 +74,26 @@ struct Field : public BaseType {
 };
 
 struct StringField : Field<std::string> {
-    uint16_t dataLength;  // Additional member for string field
+    uint16_t dataLength;
 
     StringField(std::string name, std::string val, uint16_t dataLength)
             : Field<std::string>(std::move(name), std::move(val)), dataLength(dataLength) {}
 
-    // Override to include dataLength as part of the returned value if needed
     std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool, std::pair<std::string, uint32_t>> getValue() const override {
-        return value;  // Return the string value only; dataLength can be accessed separately if needed
+        return value;
     }
 };
 
 struct ReferenceField : Field<std::pair<std::string, uint32_t>> {
-    std::string refName;  // First part of the pair
-    uint32_t primaryKeyValue;  // Second part of the pair
+    std::string refName;
+    uint32_t primaryKeyValue;
 
     ReferenceField(std::string name, std::string refName, uint32_t primaryKeyValue)
             : Field<std::pair<std::string, uint32_t>>(std::move(name), {std::move(refName), primaryKeyValue}),
               refName(std::move(refName)), primaryKeyValue(primaryKeyValue) {}
 
-    // Override to include refName and primaryKeyValue as part of the returned value
     std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool, std::pair<std::string, uint32_t>> getValue() const override {
-        return value;  // Return the reference value as a pair
+        return value;
     }
 };
 
@@ -110,6 +107,12 @@ using BoolField = Field<bool>;
 struct Record {
     std::vector<uint8_t> data;
 
+    std::ostream& operator<<(std::ostream &os) {
+        for (const auto& byte : this->data) {
+            os << std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";
+        }
+        return os;
+    }
 
     template <typename T>
     T getFieldData(size_t offset) const {

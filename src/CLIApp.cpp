@@ -113,13 +113,19 @@ void CLIApp::help() {
 void CLIApp::TableTest(const std::string& args) {
     auto map = CommandParser(args);
     std::string file;
+    Table table;
 
     for (auto pair : map) {
         std::cout << pair.first << "  " << pair.second << std::endl;
-        if(pair.first == "f" || pair.first == "file") file = pair.second;
+        if (pair.first == "f" || pair.first == "file") {
+            file = pair.second;
+            if (!file.empty()) {table.setFilePath(file); table.initializeTable();}
+        }else if(pair.first =="search") {
+            std::string val1,val2; std::stringstream ss(pair.second); std::getline(ss,val1,',');std::getline(ss,val2);
+            table.debugSearch(val1, val2);
+        }
     }
 
-    if(!file.empty()) Table table(file);
 }
 
 

@@ -30,6 +30,7 @@ public:
     std::string readNextString();
     bool readNextBool();
     std::vector<uint8_t> readBytes(unsigned int bytes);
+    unsigned long long getFileSize();
     void closeFile();
 
     void appendAtTheEnd(const std::vector<uint8_t>& data);
@@ -40,13 +41,14 @@ public:
     void setPointerLoc(fpos_t addr);
 
     fpos_t currentPointerPosition();
+    void changeFilePath(const std::string &newPath);
 
 private:
     fpos_t pointerpos{};
     std::ifstream FileStream;
 
     std::ifstream fileData;
-    const std::string &filePath;
+    std::string filePath;
 
 };
 
