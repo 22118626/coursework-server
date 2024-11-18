@@ -6,10 +6,7 @@
 #define COURSEWORK_SERVER_TABLE_H
 
 #include <string>
-#include <memory>
-#include <strings.h>
 #include <iomanip>
-#include <functional>
 #include "Record.h"
 #include "FileManager.h"
 

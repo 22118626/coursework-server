@@ -5,16 +5,22 @@
 #ifndef COURSEWORK_SERVER_DATABASE_H
 #define COURSEWORK_SERVER_DATABASE_H
 
+#include <nlohmann/json.hpp>
+
 #include "Table.h"
 
 class Database {
 public:
-    Database();
+    static Database &GetInstance();
+    void operator=(const Database&) = delete;
     void Init();
 
+    int UseTable(nlohmann::json json);
 
 private:
-    std::vector<std::unique_ptr<Table>> tables;
+    Database();
+    static Database instance;
+    std::vector<std::shared_ptr<Table>> tables;
 
 
 };

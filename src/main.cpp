@@ -6,8 +6,11 @@
 #include "CLIApp.h"
 
 int main(int argc, char* argv[]) {
-    Database db;
+    Database db = Database::GetInstance();
     db.Init();
+
+    nlohmann::json json;
+
     CLIApp app;
     app.run();
 

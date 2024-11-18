@@ -4,7 +4,7 @@
 
 #include "Table.h"
 #include <vector>
-
+#include <algorithm>
 
 
 /*enum recordTypes {
@@ -135,13 +135,13 @@ Record Table::searchTableByFieldNameAndValue(const std::vector<FieldData>& struc
         size_t offset = 0;
         bool found = false;
 
-        for (const auto& field : structure) {
+        for (const FieldData &field : structure) {
             if (field.name == fieldName) {
                 if (field.type == 4 || field.type == 3) {
-                    std::string fieldData = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length);
-                    fieldData.erase(std::remove(fieldData.begin(), fieldData.end(), '\0'), fieldData.end());
-                    std::cout << fieldData << std::endl;
-                    if (fieldData == fieldValue) {
+                    std::string s = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length);
+                    s.erase(std::ranges::remove(s, '\0').begin(), s.end());
+                    std::cout << s << std::endl;
+                    if (s == fieldValue) {
                         found = true;
                     }
                 }
