@@ -45,3 +45,24 @@ int Database::UseTable(nlohmann::json json) {
     }
     return 0;
 }
+nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
+    nlohmann::json json;
+    json = nlohmann::json::parse(jstring);
+
+    for (const auto &table : this->tables) {
+        nlohmann::json jsonDataArray;
+        std::cout << "pee pee" << table->tableName << std::endl << to_string(json) << std::endl;
+        if(table->tableName != json["tableName"].get<std::string>()) {
+            std::cout<<"TableName: "<<table->tableName<<std::endl;
+            continue;
+        }
+        if(json.contains("data") && json["data"].is_object()) {
+            jsonDataArray = json["data"];
+        }
+        if (json["mode"] == "search") {
+            table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]);
+        }
+
+    }
+}
+

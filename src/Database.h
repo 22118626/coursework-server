@@ -16,6 +16,7 @@ public:
     void Init();
 
     int UseTable(nlohmann::json json);
+    nlohmann::json parseDatabaseCommand(std::string jstring);
 
 private:
     Database();

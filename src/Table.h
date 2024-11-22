@@ -26,8 +26,7 @@ public:
 
     void setFilePath(std::string path);
     void initializeTable();
-    Record searchTableByFieldNameAndValue(const std::vector<FieldData> &structure, const std::string &fieldName,
-                                          const std::string &fieldValue);
+    Record searchTableByFieldNameAndValue(const std::string &fieldName, const std::string &fieldValue);
     void debugSearch(const std::string &FieldName, const std::string &FieldValue);
 
 private:

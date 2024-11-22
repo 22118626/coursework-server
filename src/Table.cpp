@@ -122,7 +122,8 @@ std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool> Table::rea
     }
 }*/
 
-Record Table::searchTableByFieldNameAndValue(const std::vector<FieldData>& structure, const std::string& fieldName, const std::string& fieldValue) {
+Record Table::searchTableByFieldNameAndValue(const std::string& fieldName, const std::string& fieldValue) {
+    std::cout << "Searching for: Field(" << fieldName << ") value(" << fieldValue << ")" << std::endl;
     size_t totalRecords = (this->FM.getFileSize() - this->FM.dataStart) / recordSize;
     this->FM.setPointerLoc(this->FM.dataStart);
 
@@ -135,7 +136,7 @@ Record Table::searchTableByFieldNameAndValue(const std::vector<FieldData>& struc
         size_t offset = 0;
         bool found = false;
 
-        for (const FieldData &field : structure) {
+        for (const FieldData &field : this->structureRecord) {
             if (field.name == fieldName) {
                 if (field.type == 4 || field.type == 3) {
                     std::string s = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length);
@@ -173,7 +174,7 @@ Record Table::searchTableByFieldNameAndValue(const std::vector<FieldData>& struc
 }
 
 void Table::debugSearch(const std::string& FieldName, const std::string& FieldValue) {
-    auto result = searchTableByFieldNameAndValue(this->structureRecord, "Username", "Gilbert");
+    auto result = searchTableByFieldNameAndValue("Username", "Gilbert");
     std::cout << "result: " << result.data.data() << std::endl;
 }
 

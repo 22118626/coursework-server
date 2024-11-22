@@ -7,6 +7,8 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+
+#include "Database.h"
 #include "Table.h"
 
 
@@ -19,6 +21,7 @@ CLIApp::CLIApp() {
     commands["checkdb"] = [this](const std::string&) {this->checkdb();};
     commands["certServer"] = [this](const std::string& args) {this->certsocket(args);};
     commands["TableTest"] = [this](const std::string& args) {this->TableTest(args);};
+    commands["emulateIncomingConnection"] = [this](const std::string& args) {this->emulateDbConnection(args);};
     this->running=true;
 }
 
@@ -126,6 +129,13 @@ void CLIApp::TableTest(const std::string& args) {
         }
     }
 
+}
+
+void CLIApp::emulateDbConnection(const std::string& args) {
+    Database db = Database::GetInstance();
+    auto map = CommandParser(args);
+    std::cout << map["arg"] << std::endl;
+    db.parseDatabaseCommand(map["arg"]);
 }
 
 
