@@ -35,7 +35,7 @@ public:
     unsigned long long getFileSize();
     void closeFile();
 
-    void appendAtTheEnd(const std::vector<uint8_t>& data);
+    int appendAtTheEnd(const std::vector<uint8_t>& data);
 
     fpos_t dataStart{};
     std::uint16_t type;

@@ -126,8 +126,19 @@ struct Record {
         return *record;
     }
     template <typename T>
-    Record& appendField(Record* record, T dataChange) {
-        std::memcpy(record->data.size(), dataChange, sizeof(T));
+    Record& appendField(Record* record, const T& dataChange, unsigned int length) {
+        record->data.resize((record->data.size()) + length);
+        std::memcpy(record->data.data() + record->data.size() - length, &dataChange, length);
+        return *record;
+    }
+    Record& appendStringField(Record* record, const std::string& dataChange, unsigned int length) {
+        record->data.resize((record->data.size()) + length);
+        for (size_t i = 0; i < dataChange.size(); ++i) {
+            record->data[record->data.size() - length + i] = static_cast<uint8_t>(dataChange[i]);
+        }
+        for (size_t i = dataChange.size(); i < length; ++i) {
+            record->data[record->data.size() - length + i] = 0x00;
+        }
         return *record;
     }
 };
