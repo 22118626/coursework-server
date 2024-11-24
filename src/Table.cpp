@@ -3,8 +3,10 @@
 //
 
 #include "Table.h"
+#include <utility>
 #include <vector>
 #include <algorithm>
+#include <nlohmann/json.hpp>
 
 
 /*enum recordTypes {
@@ -40,11 +42,6 @@ void Table::initializeTable() {
     int16_t NumOfFields = this->FM.readNextInt16_t();
     std::vector<std::string> fields(NumOfFields,"");
     this->tableName = this->FM.name;
-    //std::cout << this->FM.currentPointerPosition() << std::endl;
-    /*std::cout << "DataStart: " << this->FM.dataStart << std::endl <<
-    "Type: " << this->FM.type << std::endl <<
-    "name: " << this->FM.name << std::endl <<
-    "numberOfFields: " << NumOfFields << std::endl;*/
 
     /*LoginID uint32| Username String(50) | HashedPassword String(64Bytes/256bits)*/
     for(int i = 0; i < NumOfFields; i++) {
@@ -94,33 +91,6 @@ std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool> Table::rea
     throw std::runtime_error("Record parsing failed");
 }
 
-/*std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool> Table::searchTableByFieldNameAndValue(
-        const std::vector<FieldData>& structure, const std::string& fieldName) {
-
-    // Find the field by name
-    auto itterator = std::find_if(structure.begin(), structure.end(), [&](const FieldData& field) {
-        return field.name == fieldName;
-    });
-
-    // Ensure the field is found
-    if (itterator == structure.end()) {
-        throw std::runtime_error("Field name not found in structure");
-    }
-
-    // Find the index of the field
-    int indexToSearch = std::distance(structure.begin(), itterator);
-    std::cout << "Found field at index: " << indexToSearch << std::endl;
-
-    try {
-        // Read the record of type T at the given index
-        auto result = readRecord(indexToSearch);
-
-        return result; // Return the result (which is a std::variant)
-    } catch (const std::exception& ex) {
-        std::cerr << "Error reading record: " << ex.what() << std::endl;
-        throw; // Re-throw the exception to the caller
-    }
-}*/
 
 Record Table::searchTableByFieldNameAndValue(const std::string& fieldName, const std::string& fieldValue) {
     std::cout << "Searching for: Field(" << fieldName << ") value(" << fieldValue << ")" << std::endl;
@@ -168,10 +138,63 @@ Record Table::searchTableByFieldNameAndValue(const std::string& fieldName, const
             }
         }
     }
-
-    // If no matching record is found, throw an exception or return a default record
-    throw std::runtime_error("Field value not found in any record");
+    Record rec;
+    rec.data.push_back(0x0000); // no id of 0
+    return rec;
 }
+int Table::appendRecordFromJson(nlohmann::json json) {
+    return appendRecord(JsonToRecord(std::move(json)));
+}
+int Table::appendRecord(const Record& record) {
+    return FM.appendAtTheEnd(record.data);
+}
+
+
+nlohmann::json Table::RecordToJson(Record record) {
+    int offset = 0;
+    nlohmann::json json;
+    for(const FieldData &field : this->structureRecord) {
+        if(field.type==2 || field.type==1){
+            if(field.length == 2) {
+                json[field.name] = record.getFieldData<uint16_t>(offset);
+            }
+            if(field.length == 4) {
+                json[field.name] = record.getFieldData<uint32_t>(offset);
+            }
+        }
+        else if(field.type==3||field.type==4) {
+            std::string s = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length);
+            s.erase(std::ranges::remove(s, '\0').begin(), s.end());
+            json[field.name]=s;
+        }
+        offset+= field.length;
+    }
+    return json;
+}
+Record Table::JsonToRecord(nlohmann::json json) {
+    int offset = 0;
+    Record record;
+    for(const FieldData &field : this->structureRecord) {
+        if(field.type==2 || field.type==1){
+            if(field.length == 2) {
+                record = record.appendField(&record, json[field.name].get<uint16_t>(), field.length);
+            }
+            if(field.length == 4) {
+                record = record.appendField(&record, json[field.name].get<uint32_t>(), field.length);
+            }
+        }
+        else if(field.type==3||field.type==4) {
+            std::string s = json[field.name].get<std::string>();
+            s.resize(field.length, 0x00);
+            std::cout << s.data() << "gay ass nigga balls" << std::endl;
+
+            record = record.appendStringField(&record, s, field.length);
+        }
+        offset+= field.length;
+    }
+    return record;
+}
+
 
 void Table::debugSearch(const std::string& FieldName, const std::string& FieldValue) {
     auto result = searchTableByFieldNameAndValue("Username", "Gilbert");

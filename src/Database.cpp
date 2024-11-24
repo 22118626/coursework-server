@@ -5,11 +5,13 @@
 #include "Database.h"
 #include <filesystem>
 #include <nlohmann/json.hpp>
+#include <openssl/sha.h>
 
 
 namespace fs = std::filesystem;
 
 Database::Database() {
+    Init();
 }
 
 
@@ -46,23 +48,44 @@ int Database::UseTable(nlohmann::json json) {
     return 0;
 }
 nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
+    std::cout << "peepeepoopoo" << std::endl;
     nlohmann::json json;
     json = nlohmann::json::parse(jstring);
 
     for (const auto &table : this->tables) {
         nlohmann::json jsonDataArray;
         std::cout << "pee pee" << table->tableName << std::endl << to_string(json) << std::endl;
+        std::cout<<json["tableName"].get<std::string>()<<std::endl;
         if(table->tableName != json["tableName"].get<std::string>()) {
             std::cout<<"TableName: "<<table->tableName<<std::endl;
             continue;
         }
         if(json.contains("data") && json["data"].is_object()) {
             jsonDataArray = json["data"];
-        }
+        } else continue;
         if (json["mode"] == "search") {
-            table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]);
+            std::cout << "searching "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
+            return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
         }
-
+        if (json["mode"] == "authenticate") {
+            std::cout << "authenticating "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
+            nlohmann::json val = table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
+            nlohmann::json val2;
+            std::ostringstream oss;
+            unsigned char hash[SHA512_DIGEST_LENGTH];
+            SHA512(reinterpret_cast<const unsigned char*>(val["HashedPassword"].get<std::string>().data()), val["HashedPassword"].get<std::string>().size(), hash);
+            for(int i = 0; i< SHA512_DIGEST_LENGTH; i++) {
+                oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+            }
+            val2["key"] = oss.str();
+            return val2;
+        }
+        if (json["mode"] == "append") {
+            std::cout << "appending "<<table->tableName<<" with "<<jsonDataArray.dump()<<std::endl;
+            nlohmann::json result;
+            result["code"] = table->appendRecordFromJson(jsonDataArray);
+            return result;
+        }
     }
 }
 

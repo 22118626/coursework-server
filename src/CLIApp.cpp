@@ -135,7 +135,8 @@ void CLIApp::emulateDbConnection(const std::string& args) {
     Database db = Database::GetInstance();
     auto map = CommandParser(args);
     std::cout << map["arg"] << std::endl;
-    db.parseDatabaseCommand(map["arg"]);
+    auto returns = db.parseDatabaseCommand(map["arg"]);
+    std::cout << returns.dump(2) << std::endl;
 }
 
 
