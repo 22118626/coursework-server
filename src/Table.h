@@ -15,6 +15,9 @@
 class Table {
 public:
     std::string tableFilePath;
+    int lastPrimaryKeyIndex;
+    fpos_t lastPrimaryKeyIndexPointer;
+    std::string tableName;
 
     explicit Table(const std::string& filePath);
     explicit Table();
@@ -23,7 +26,6 @@ public:
     //virtual void addRecord(std::shared_ptr<Record> record);
     //void printRecords() const;
 
-    std::string tableName;
 
     void setFilePath(std::string path);
     void initializeTable();
@@ -42,7 +44,6 @@ private:
 
     void addDataTypeToRecord(Record *record, const std::string &name, int type, int dataLength);
     std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool> readRecord(int index);
-
 };
 
 

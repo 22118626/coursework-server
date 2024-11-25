@@ -51,6 +51,7 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
     std::cout << "peepeepoopoo" << std::endl;
     nlohmann::json json;
     json = nlohmann::json::parse(jstring);
+    std::cout << json.dump(2) << std::endl;
 
     for (const auto &table : this->tables) {
         nlohmann::json jsonDataArray;
@@ -87,5 +88,9 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
             return result;
         }
     }
+    json["code"] = -1;
+    json["description"] = "mode not found";
+    return json;
+
 }
 

@@ -31,7 +31,7 @@ bool FileManager::openFile(const std::string& filePath) {
     std::cout << "(FM) opening file (" << filePath <<")"<<std::endl;
     try {
         if(std::filesystem::exists(filePath)) {
-            FileStream.open(filePath, std::ios::in | std::ios::binary);
+            FileStream.open(filePath, std::ios::in | std::ios::out | std::ios::binary);
             return true;
         }
         //std::cout << "\"" << filePath << "\" does not exist" << std::endl;

@@ -52,6 +52,7 @@ struct FieldData {
     std::string name;
     uint8_t type;
     uint16_t length;
+    bool isPrimary;
 
 };
 

@@ -38,6 +38,10 @@ void Table::initializeTable() {
     }
     this->FM.setPointerLoc(0);
     this->FM.readHeader();
+    this->lastPrimaryKeyIndexPointer = this->FM.currentPointerPosition();
+    std::cout << this->lastPrimaryKeyIndexPointer << std::endl;
+    this->lastPrimaryKeyIndex = this->FM.readNextInt32_t();
+    std::cout << this->lastPrimaryKeyIndex << std::endl;
 
     int16_t NumOfFields = this->FM.readNextInt16_t();
     std::vector<std::string> fields(NumOfFields,"");
@@ -45,7 +49,7 @@ void Table::initializeTable() {
 
     /*LoginID uint32| Username String(50) | HashedPassword String(64Bytes/256bits)*/
     for(int i = 0; i < NumOfFields; i++) {
-        FieldData fieldData = {this->FM.readNextString(), this->FM.readNextUint8_t(),this->FM.readNextUint16_t()};
+        FieldData fieldData = {this->FM.readNextString(), this->FM.readNextUint8_t(),this->FM.readNextUint16_t(), (i==0)};
         structureRecord.push_back(fieldData);
         //std::cout << this->FM.currentPointerPosition() << std::endl;
     }
@@ -146,6 +150,8 @@ int Table::appendRecordFromJson(nlohmann::json json) {
     return appendRecord(JsonToRecord(std::move(json)));
 }
 int Table::appendRecord(const Record& record) {
+    lastPrimaryKeyIndex++;
+    FM.writeAt<uint32_t>(this->lastPrimaryKeyIndex, lastPrimaryKeyIndexPointer);
     return FM.appendAtTheEnd(record.data);
 }
 
@@ -172,9 +178,15 @@ nlohmann::json Table::RecordToJson(Record record) {
     return json;
 }
 Record Table::JsonToRecord(nlohmann::json json) {
+    std::cout << "current Last Index: " << this->lastPrimaryKeyIndex << std::endl;
     int offset = 0;
     Record record;
     for(const FieldData &field : this->structureRecord) {
+        std::cout << field.name << std::endl;
+        if(field.isPrimary) {
+            record = record.appendField<uint32_t>(&record,lastPrimaryKeyIndex+1, field.length);
+            continue;
+        }
         if(field.type==2 || field.type==1){
             if(field.length == 2) {
                 record = record.appendField(&record, json[field.name].get<uint16_t>(), field.length);
@@ -190,8 +202,10 @@ Record Table::JsonToRecord(nlohmann::json json) {
         }
         offset+= field.length;
     }
+    std::cout<<"found record: " << std::endl;for (const auto& byte : record.data) {std::cout<< std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";}std::cout <<std::endl;
     return record;
 }
+
 
 
 void Table::debugSearch(const std::string& FieldName, const std::string& FieldValue) {

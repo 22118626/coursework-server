@@ -45,11 +45,20 @@ public:
     fpos_t currentPointerPosition();
     void changeFilePath(const std::string &newPath);
 
+    template<typename T>
+    int writeAt(const T& change, fpos_t offset) {
+        fpos_t temp = FileStream.tellg();
+        FileStream.seekg(offset);
+        FileStream.write(reinterpret_cast<const char*>(&change), sizeof(T));
+        FileStream.seekg(temp);
+        return 0;
+    }
+
 private:
     fpos_t pointerpos{};
-    std::ifstream FileStream;
+    std::fstream FileStream;
 
-    std::ifstream fileData;
+    std::fstream fileData;
     std::string filePath;
 
 };
