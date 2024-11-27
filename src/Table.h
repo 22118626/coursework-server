@@ -18,6 +18,7 @@ public:
     int lastPrimaryKeyIndex;
     fpos_t lastPrimaryKeyIndexPointer;
     std::string tableName;
+    uint16_t tableType;
 
     explicit Table(const std::string& filePath);
     explicit Table();

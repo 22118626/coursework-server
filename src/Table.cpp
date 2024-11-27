@@ -46,6 +46,7 @@ void Table::initializeTable() {
     int16_t NumOfFields = this->FM.readNextInt16_t();
     std::vector<std::string> fields(NumOfFields,"");
     this->tableName = this->FM.name;
+    this->tableType = this->FM.type;
 
     /*LoginID uint32| Username String(50) | HashedPassword String(64Bytes/256bits)*/
     for(int i = 0; i < NumOfFields; i++) {
@@ -168,10 +169,17 @@ nlohmann::json Table::RecordToJson(Record record) {
                 json[field.name] = record.getFieldData<uint32_t>(offset);
             }
         }
-        else if(field.type==3||field.type==4) {
+        else if(field.type==3) {
             std::string s = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length);
             s.erase(std::ranges::remove(s, '\0').begin(), s.end());
             json[field.name]=s;
+        }else if(field.type==4) {
+            std::string s = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length - sizeof(uint32_t));
+            s.erase(std::ranges::remove(s, '\0').begin(), s.end());
+            nlohmann::json referenceObject;
+            referenceObject["tableName"] = s;
+            referenceObject["value"] = record.getFieldData<uint32_t>(offset + field.length - sizeof(uint32_t));
+            json[field.name]=referenceObject;
         }
         offset+= field.length;
     }
@@ -196,9 +204,14 @@ Record Table::JsonToRecord(nlohmann::json json) {
             }
         }
         else if(field.type==3||field.type==4) {
-            std::string s = json[field.name].get<std::string>();
+            std::string s;
+            if (field.type==3) s = json[field.name].get<std::string>();
+            else if(field.type == 4 && json[field.name].is_object()) s = json[field.name].get<nlohmann::json>()["tableName"].get<std::string>();
             s.resize(field.length, 0x00);
-            record = record.appendStringField(&record, s, field.length);
+            record = record.appendStringField(&record, s, field.length-sizeof(uint32_t));
+            if(field.type == 4) {
+                record = record.appendField(&record, json[field.name].get<nlohmann::json>()["value"].get<uint32_t>(), sizeof(uint32_t));
+            }
         }
         offset+= field.length;
     }

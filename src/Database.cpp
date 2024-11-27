@@ -15,7 +15,7 @@ Database::Database() {
 }
 
 
-Database& Database::GetInstance() {
+Database &Database::GetInstance() {
     static Database instance;
     return instance;
 }
@@ -35,6 +35,7 @@ void Database::Init() {
         for(const auto &table : this->tables) {
             std::cout << "TableName: " << table->tableName << std::endl;
         }
+        std::cout<<"finished Initializing Database 😁"<<std::endl;
     }catch (const fs::filesystem_error &e) {std::cerr << "error in Database.cpp/Database::int(): " << e.what() << e.code() << std::endl;}
 
 }
@@ -47,15 +48,18 @@ int Database::UseTable(nlohmann::json json) {
     }
     return 0;
 }
+
 nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
-    std::cout << "peepeepoopoo" << std::endl;
     nlohmann::json json;
     json = nlohmann::json::parse(jstring);
     std::cout << json.dump(2) << std::endl;
 
     for (const auto &table : this->tables) {
         nlohmann::json jsonDataArray;
-        std::cout << "pee pee" << table->tableName << std::endl << to_string(json) << std::endl;
+        std::shared_ptr<Table> loginTable;
+        for(const std::shared_ptr<Table>& table1 : this->tables) {
+            if(table1->tableName == "Login") loginTable = table1;
+        }
         std::cout<<json["tableName"].get<std::string>()<<std::endl;
         if(table->tableName != json["tableName"].get<std::string>()) {
             std::cout<<"TableName: "<<table->tableName<<std::endl;
@@ -65,8 +69,25 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
             jsonDataArray = json["data"];
         } else continue;
         if (json["mode"] == "search") {
-            std::cout << "searching "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
-            return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
+            std::cout << "tableTYPE?!!:   " << table->tableType << std::endl;
+            if(table->tableType != 0) {
+                nlohmann::json auth = json["authentication"].get<nlohmann::json>();
+                nlohmann::json fromTableUser = loginTable->RecordToJson(loginTable->searchTableByFieldNameAndValue("LoginID", std::to_string(auth["LoginID"].get<uint32_t>())));
+                if (auth["HashedPassword"] == fromTableUser["HashedPassword"] && table->tableType <= fromTableUser["UserPrivelageFlag"]) {
+                    std::cout << "searching with auth: "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
+                    return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
+                }else {
+                    std::cout << "Failed auth" << std::endl;
+                    nlohmann::json rtrn;
+                    rtrn["code"] = -3;
+                    rtrn["description"] = "Failed authentication (Accessing Higher Level requirement Table)";
+                    return rtrn;
+                }
+
+            }else{
+                std::cout << "searching: "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
+                return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
+            }
         }
         if (json["mode"] == "authenticate") {
             std::cout << "authenticating "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
