@@ -11,7 +11,7 @@
 
 class Database {
 public:
-    static Database &GetInstance();
+    static std::shared_ptr<Database> &GetInstance();
     void operator=(const Database&) = delete;
     void Init();
 
@@ -20,7 +20,7 @@ public:
 
 private:
     Database();
-    static Database instance;
+    static std::shared_ptr<Database> instance;
     std::vector<std::shared_ptr<Table>> tables;
 
 

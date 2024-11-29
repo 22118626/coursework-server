@@ -13,6 +13,7 @@
 #include <mutex>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include "./Database.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -50,6 +51,7 @@ protected:
 
 private:
     bool run = false;
+    static std::shared_ptr<Database> db;
 };
 
 #endif //COURSEWORK_SERVER_SOCKET_H

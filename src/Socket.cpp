@@ -6,7 +6,7 @@
 #include "Socket.h"
 #include <chrono>
 
-
+std::shared_ptr<Database> Socket::db = nullptr;
 Socket& Socket::getInstance() {
     static Socket instance;
     return instance;
@@ -19,6 +19,8 @@ Socket::Socket() : serverSocket(INVALID_SOCKET), running(false), ctx(nullptr) {
     SSL_library_init();
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
+    db = Database::GetInstance();
+    std::cout << "out of DB in Socket" << std::endl;
 }
 
 Socket::~Socket() {
@@ -138,17 +140,17 @@ void Socket::SocketConnectionLoop() {
 }
 
 void Socket::handleClient(SSL* ssl, SOCKET clientSocket) {
-    // Send a welcome message to the client
-    const std::string message = "Hello from the SSL server!\n";
-    SSL_write(ssl, message.c_str(), message.size());
 
     // Receive a message from the client
-    char buffer[512];
+    char buffer[2048];
     int bytesReceived = SSL_read(ssl, buffer, sizeof(buffer)); // Use SSL_read instead of recv
     if (bytesReceived > 0) {
         std::cout << "Received message from client: "
                   << std::string(buffer, bytesReceived) << std::endl;
     }
+    // Send a welcome message to the client
+    const std::string message = db->parseDatabaseCommand(std::string(buffer)).dump();
+    SSL_write(ssl, message.c_str(), message.size());
 
     // Shutdown the SSL connection and close the socket
     SSL_shutdown(ssl);

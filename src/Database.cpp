@@ -7,6 +7,8 @@
 #include <nlohmann/json.hpp>
 #include <openssl/sha.h>
 
+std::shared_ptr<Database> Database::instance = nullptr;
+std::string hash(std::string string);
 
 namespace fs = std::filesystem;
 
@@ -14,9 +16,10 @@ Database::Database() {
     Init();
 }
 
-
-Database &Database::GetInstance() {
-    static Database instance;
+std::shared_ptr<Database> &Database::GetInstance() {
+    if(instance == nullptr) {
+        instance = std::make_shared<Database>(Database());
+    }
     return instance;
 }
 
@@ -57,9 +60,21 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
     for (const auto &table : this->tables) {
         nlohmann::json jsonDataArray;
         std::shared_ptr<Table> loginTable;
+
         for(const std::shared_ptr<Table>& table1 : this->tables) {
             if(table1->tableName == "Login") loginTable = table1;
         }
+        if (json["mode"] == "authenticate") {
+            std::cout << "authenticating "<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
+            nlohmann::json val = loginTable->RecordToJson(loginTable->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
+            nlohmann::json rtrn;
+            if(val["LoginID"] == jsonDataArray["field"] && val["HashedPassword"] == jsonDataArray["value"]) {
+                rtrn["privileged"] = val["UserPrivelageFlag"] > 0;
+                rtrn["access"] = true;
+            }
+            return rtrn;
+        }
+
         std::cout<<json["tableName"].get<std::string>()<<std::endl;
         if(table->tableName != json["tableName"].get<std::string>()) {
             std::cout<<"TableName: "<<table->tableName<<std::endl;
@@ -89,19 +104,6 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
                 return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
             }
         }
-        if (json["mode"] == "authenticate") {
-            std::cout << "authenticating "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
-            nlohmann::json val = table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
-            nlohmann::json val2;
-            std::ostringstream oss;
-            unsigned char hash[SHA512_DIGEST_LENGTH];
-            SHA512(reinterpret_cast<const unsigned char*>(val["HashedPassword"].get<std::string>().data()), val["HashedPassword"].get<std::string>().size(), hash);
-            for(int i = 0; i< SHA512_DIGEST_LENGTH; i++) {
-                oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
-            }
-            val2["key"] = oss.str();
-            return val2;
-        }
         if (json["mode"] == "append") {
             std::cout << "appending "<<table->tableName<<" with "<<jsonDataArray.dump()<<std::endl;
             nlohmann::json result;
@@ -113,5 +115,15 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
     json["description"] = "mode not found";
     return json;
 
+}
+
+std::string hash(std::string string) {
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA512(reinterpret_cast<const unsigned char*>(string.data()), string.size(), hash);
+    std::ostringstream oss;
+    for(int i = 0; i< SHA256_DIGEST_LENGTH; i++) {
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+    }
+    return oss.str();
 }
 
