@@ -46,7 +46,7 @@ void Table::initializeTable() {
     int16_t NumOfFields = this->FM.readNextInt16_t();
     std::vector<std::string> fields(NumOfFields,"");
     this->tableName = this->FM.name;
-    this->tableType = this->FM.type;
+    this->permissionLevel = this->FM.permissionLevel;
 
     /*LoginID uint32| Username String(50) | HashedPassword String(64Bytes/256bits)*/
     for(int i = 0; i < NumOfFields; i++) {

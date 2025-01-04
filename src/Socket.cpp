@@ -143,21 +143,23 @@ void Socket::handleClient(SSL* ssl, SOCKET clientSocket) {
 
     // Receive a message from the client
     char buffer[2048];
-    int bytesReceived = SSL_read(ssl, buffer, sizeof(buffer))-2; // Use SSL_read instead of recv  // for some reason it is overshooting by 2 bytes
+    int bytesReceived = SSL_read(ssl, buffer, sizeof(buffer)) -
+                        2; // Use SSL_read instead of recv  // for some reason it is overshooting by 2 bytes
 
     if (bytesReceived > 0) {
         std::cout << "Received message from client: " << std::string(buffer, bytesReceived) << std::endl;
         std::cout << std::string(buffer) << std::endl;
-        const std::string message = db->parseDatabaseCommand(std::string(buffer, bytesReceived)).dump() +"\r\n";
+        const std::string message = db->parseDatabaseCommand(std::string(buffer, bytesReceived)).dump() + "\r\n";
         std::cout << "sending: " << message << std::endl;
         SSL_write(ssl, message.c_str(), message.size());
     }
-    // Send a welcome message to the client
 
     // Shutdown the SSL connection and close the socket
-    //SSL_shutdown(ssl);
-    //SSL_free(ssl);
-    //closesocket(clientSocket);
+    SSL_shutdown(ssl);
+    SSL_free(ssl);
+    closesocket(clientSocket);
+    std::cout<<"Conn closed" << std::endl;
+
 }
 
 void Socket::stop() {

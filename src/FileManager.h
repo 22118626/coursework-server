@@ -38,7 +38,7 @@ public:
     int appendAtTheEnd(const std::vector<uint8_t>& data);
 
     fpos_t dataStart{};
-    std::uint16_t type;
+    std::uint16_t permissionLevel;
     std::string name;
     void setPointerLoc(fpos_t addr);
 

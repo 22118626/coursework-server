@@ -17,7 +17,7 @@ FileManager::FileManager(const std::string& filePath,int i) : filePath(filePath)
 
 void FileManager::readHeader() {
     this->dataStart =  static_cast<fpos_t>(readNextUint32_t());
-    this->type = readNextInt16_t();
+    this->permissionLevel = readNextInt16_t();
     this->name = readNextString();
     //std::cout << "data->" << readNextString() <<"\t"<< readNextInt16_t() <<"<- end of data" << std::endl;
 }

@@ -18,7 +18,8 @@ public:
     int lastPrimaryKeyIndex;
     fpos_t lastPrimaryKeyIndexPointer;
     std::string tableName;
-    uint16_t tableType;
+    uint16_t permissionLevel;
+    std::vector<FieldData> structureRecord;
 
     explicit Table(const std::string& filePath);
     explicit Table();
@@ -40,7 +41,6 @@ public:
 private:
     FileManager FM;
 
-    std::vector<FieldData> structureRecord;
     int recordSize = 0;
 
     void addDataTypeToRecord(Record *record, const std::string &name, int type, int dataLength);
