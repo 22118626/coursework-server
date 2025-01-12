@@ -85,42 +85,6 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
             return rtrn;
         }
         std::cout << "dingus3" << std::endl;
-
-//        if(table->tableName != json["tableName"].get<std::string>()) {
-//            std::cout<<"TableName: "<<table->tableName<<std::endl;
-//            continue;
-//        }
-        if(json.contains("data") && json["data"].is_object()) {
-            jsonDataArray = json["data"];
-        } else continue;
-        if (json["mode"] == "search") {
-            std::cout << "tableTYPE?!!:   " << table->permissionLevel << std::endl;
-            if(table->permissionLevel != 0) {
-                nlohmann::json auth = json["authentication"].get<nlohmann::json>();
-                nlohmann::json fromTableUser = loginTable->RecordToJson(loginTable->searchTableByFieldNameAndValue("LoginID", std::to_string(auth["LoginID"].get<uint32_t>())));
-                if (auth["HashedPassword"] == fromTableUser["HashedPassword"] && table->permissionLevel <= fromTableUser["UserPrivelageFlag"]) {
-                    std::cout << "searching with auth: "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
-                    return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
-                }else {
-                    std::cout << "Failed auth" << std::endl;
-                    nlohmann::json rtrn;
-                    rtrn["code"] = -3;
-                    rtrn["description"] = "Failed authentication (Accessing Higher Level requirement Table)";
-                    return rtrn;
-                }
-
-            }else{
-                std::cout << "searching: "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
-                return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
-            }
-        }
-        if (json["mode"] == "append") {
-            std::cout << "appending "<<table->tableName<<" with "<<jsonDataArray.dump()<<std::endl;
-            nlohmann::json result;
-            result["code"] = table->appendRecordFromJson(jsonDataArray);
-            return result;
-        }
-        std::cout << "dingus4" << std::endl;
         if(json["mode"] == "getTables") {
 
             std::cout<<0<<std::endl;
@@ -164,6 +128,42 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
             rtrnjson["description"] = "incorrect auth token";
             return rtrnjson;
         }
+
+        if(table->tableName != json["tableName"].get<std::string>()) {
+            std::cout<<"TableName: "<<table->tableName<<std::endl;
+            continue;
+        }
+        if(json.contains("data") && json["data"].is_object()) {
+            jsonDataArray = json["data"];
+        } else continue;
+        if (json["mode"] == "search") {
+            std::cout << "tableTYPE?!!:   " << table->permissionLevel << std::endl;
+            if(table->permissionLevel != 0) {
+                nlohmann::json auth = json["authentication"].get<nlohmann::json>();
+                nlohmann::json fromTableUser = loginTable->RecordToJson(loginTable->searchTableByFieldNameAndValue("LoginID", std::to_string(auth["LoginID"].get<uint32_t>())));
+                if (auth["HashedPassword"] == fromTableUser["HashedPassword"] && table->permissionLevel <= fromTableUser["UserPrivelageFlag"]) {
+                    std::cout << "searching with auth: "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
+                    return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
+                }else {
+                    std::cout << "Failed auth" << std::endl;
+                    nlohmann::json rtrn;
+                    rtrn["code"] = -3;
+                    rtrn["description"] = "Failed authentication (Accessing Higher Level requirement Table)";
+                    return rtrn;
+                }
+
+            }else{
+                std::cout << "searching: "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
+                return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
+            }
+        }
+        if (json["mode"] == "append") {
+            std::cout << "appending "<<table->tableName<<"("+json["tableName"].get<std::string>()+") with "<<jsonDataArray.dump()<<std::endl;
+            nlohmann::json result;
+            result["code"] = table->appendRecordFromJson(jsonDataArray);
+            return result;
+        }
+        std::cout << "dingus4" << std::endl;
     }
     json["code"] = -1;
     json["description"] = "mode not found";
