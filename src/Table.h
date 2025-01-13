@@ -37,6 +37,7 @@ public:
     Record JsonToRecord(nlohmann::json json);
     int appendRecordFromJson(nlohmann::json json);
     int appendRecord(const Record& record);
+    int removeRecordFromTable(const Record& record);
 
 private:
     FileManager FM;

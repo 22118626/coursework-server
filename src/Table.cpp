@@ -155,6 +155,9 @@ int Table::appendRecord(const Record& record) {
     FM.writeAt<uint32_t>(this->lastPrimaryKeyIndex, lastPrimaryKeyIndexPointer);
     return FM.appendAtTheEnd(record.data);
 }
+int Table::removeRecordFromTable() {
+
+}
 
 
 nlohmann::json Table::RecordToJson(Record record) {

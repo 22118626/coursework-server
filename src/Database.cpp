@@ -163,6 +163,10 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
             result["code"] = table->appendRecordFromJson(jsonDataArray);
             return result;
         }
+        if (json["mode"] == "remove") {
+            std::cout << "REMOVING: " << json["data"].dump() <<std::endl;
+
+        }
         std::cout << "dingus4" << std::endl;
     }
     json["code"] = -1;
