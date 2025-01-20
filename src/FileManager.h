@@ -36,6 +36,7 @@ public:
     void closeFile();
 
     int appendAtTheEnd(const std::vector<uint8_t>& data);
+    int modifyAtIndex(size_t size, const std::vector<unsigned char>& data);
 
     fpos_t dataStart{};
     std::uint16_t permissionLevel;

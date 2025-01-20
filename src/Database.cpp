@@ -137,25 +137,7 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
             jsonDataArray = json["data"];
         } else continue;
         if (json["mode"] == "search") {
-            std::cout << "tableTYPE?!!:   " << table->permissionLevel << std::endl;
-            if(table->permissionLevel != 0) {
-                nlohmann::json auth = json["authentication"].get<nlohmann::json>();
-                nlohmann::json fromTableUser = loginTable->RecordToJson(loginTable->searchTableByFieldNameAndValue("LoginID", std::to_string(auth["LoginID"].get<uint32_t>())));
-                if (auth["HashedPassword"] == fromTableUser["HashedPassword"] && table->permissionLevel <= fromTableUser["UserPrivelageFlag"]) {
-                    std::cout << "searching with auth: "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
-                    return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
-                }else {
-                    std::cout << "Failed auth" << std::endl;
-                    nlohmann::json rtrn;
-                    rtrn["code"] = -3;
-                    rtrn["description"] = "Failed authentication (Accessing Higher Level requirement Table)";
-                    return rtrn;
-                }
-
-            }else{
-                std::cout << "searching: "<<table->tableName<<" with "<<jsonDataArray["field"]<<" "<<jsonDataArray["value"]<<std::endl;
-                return table->RecordToJson(table->searchTableByFieldNameAndValue(jsonDataArray["field"], jsonDataArray["value"]));
-            }
+            return  search(json, table.get(), loginTable.get());
         }
         if (json["mode"] == "append") {
             std::cout << "appending "<<table->tableName<<"("+json["tableName"].get<std::string>()+") with "<<jsonDataArray.dump()<<std::endl;
@@ -166,6 +148,10 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
         if (json["mode"] == "remove") {
             std::cout << "REMOVING: " << json["data"].dump() <<std::endl;
 
+            nlohmann::json result;
+            result["code"]= table->removeRecordFromTable(json);
+            result["description"]= result==1 ? "success!" : "failed!";
+            return result;
         }
         std::cout << "dingus4" << std::endl;
     }
@@ -173,6 +159,29 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
     json["description"] = "mode not found";
     return json;
 
+}
+nlohmann::json Database::search (nlohmann::json json, Table *table, Table *loginTable) {
+    if(table->permissionLevel != 0) {
+        nlohmann::json auth = json["authentication"].get<nlohmann::json>();
+        nlohmann::json fromTableUser = loginTable->RecordToJson(loginTable->searchTableByFieldNameAndValue("LoginID", std::to_string(auth["LoginID"].get<uint32_t>())));
+        if (auth["HashedPassword"] == fromTableUser["HashedPassword"] && table->permissionLevel <= fromTableUser["UserPrivelageFlag"]) {
+            std::cout << "searching with auth: "<<table->tableName<<" with "<<json["data"]["field"]<<" "<<json["data"]["value"]<<std::endl;
+            return table->RecordToJson(table->searchTableByFieldNameAndValue(json["data"]["field"], json["data"]["value"]));
+        }else {
+            std::cout << "Not found" << std::endl;
+            nlohmann::json rtrn;
+            rtrn["code"] = -4;
+            rtrn["description"] = "Not found";
+            return rtrn;
+        }
+    }
+    else{
+        std::cout << "Failed auth" << std::endl;
+        nlohmann::json rtrn;
+        rtrn["code"] = -3;
+        rtrn["description"] = "Failed authentication (Accessing Higher Level requirement Table)";
+        return rtrn;
+    }
 }
 
 std::string hash(std::string string) {

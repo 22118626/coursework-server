@@ -139,6 +139,7 @@ Record Table::searchTableByFieldNameAndValue(const std::string& fieldName, const
 
             if (found) {
                 std::cout<<"found record: " << std::endl;for (const auto& byte : record.data) {std::cout<< std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";}std::cout <<std::endl;
+                this->recentIndex = index;
                 return record;
             }
         }
@@ -155,7 +156,10 @@ int Table::appendRecord(const Record& record) {
     FM.writeAt<uint32_t>(this->lastPrimaryKeyIndex, lastPrimaryKeyIndexPointer);
     return FM.appendAtTheEnd(record.data);
 }
-int Table::removeRecordFromTable() {
+int Table::removeRecordFromTable(nlohmann::json json) {
+    this->searchTableByFieldNameAndValue(json["data"]["field"], json["data"]["value"]);
+    nlohmann::json rtrn = nlohmann::json::object();
+    return FM.modifyAtIndex(this->recentIndex,JsonToRecord(std::move(json)).data);
 
 }
 

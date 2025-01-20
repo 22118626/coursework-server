@@ -37,11 +37,11 @@ public:
     Record JsonToRecord(nlohmann::json json);
     int appendRecordFromJson(nlohmann::json json);
     int appendRecord(const Record& record);
-    int removeRecordFromTable(const Record& record);
+    int removeRecordFromTable(nlohmann::json json);
 
 private:
     FileManager FM;
-
+    size_t recentIndex;
     int recordSize = 0;
 
     void addDataTypeToRecord(Record *record, const std::string &name, int type, int dataLength);
