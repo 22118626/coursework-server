@@ -50,9 +50,21 @@ void Table::initializeTable() {
 
     /*LoginID uint32| Username String(50) | HashedPassword String(64Bytes/256bits)*/
     for(int i = 0; i < NumOfFields; i++) {
-        FieldData fieldData = {this->FM.readNextString(), this->FM.readNextUint8_t(),this->FM.readNextUint16_t(), (i==0)};
-        structureRecord.push_back(fieldData);
-        //std::cout << this->FM.currentPointerPosition() << std::endl;
+        std::string str = this->FM.readNextString();
+        uint8_t type = this->FM.readNextUint8_t();
+        uint16_t length = this->FM.readNextUint16_t();
+        if (type==4) {
+            std::string fieldTableName = this->FM.readNextString();
+            uint16_t tableNameLength = this->FM.readNextUint16_t();
+            FieldData fieldData = {str, type, length, (i==0), fieldTableName, tableNameLength};
+            structureRecord.push_back(fieldData);
+            std::cout << "pointer pos4: " << this->FM.currentPointerPosition() << std::endl;
+        }else {
+            FieldData fieldData = {str, type, length, (i==0)};
+            structureRecord.push_back(fieldData);
+            std::cout << "pointer pos5: " << this->FM.currentPointerPosition() << std::endl;
+        }
+        std::cout << "Ending pointer pos: " << this->FM.currentPointerPosition() << std::endl;
     }
     this->recordSize = 0;
     for ( auto i : structureRecord) {
@@ -71,11 +83,11 @@ std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool> Table::rea
     for (auto& field : this->structureRecord) {
         std::cout << "offset: " << offset << std::endl;
 
-        if (field.type == 4 || field.type == 3) {
+        if (field.type == 3) {
             auto value = std::string(reinterpret_cast<const char*>(vec.data()) + offset, field.length);
             std::cout << field.name << ": " << value << std::endl;
             return value;
-        } else if (field.type == 2 || field.type == 1) {
+        } else if (field.type == 4 || field.type == 2 || field.type == 1) {
             if (field.length == 4) {
                 int32_t value = *reinterpret_cast<const int32_t*>(vec.data() + offset);
                 std::cout << field.name << ": " << std::dec << value << std::endl;
@@ -113,7 +125,7 @@ Record Table::searchTableByFieldNameAndValue(const std::string& fieldName, const
 
         for (const FieldData &field : this->structureRecord) {
             if (field.name == fieldName) {
-                if (field.type == 4 || field.type == 3) {
+                if (field.type == 3) {
                     std::string s = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length);
                     s.erase(std::ranges::remove(s, '\0').begin(), s.end());
                     std::cout << s << std::endl;
@@ -121,7 +133,7 @@ Record Table::searchTableByFieldNameAndValue(const std::string& fieldName, const
                         found = true;
                     }
                 }
-                else if (field.type == 2 || field.type == 1) {
+                else if (field.type == 4 || field.type == 2 || field.type == 1) {
                     if (field.length == 4) {  // int32_t
                         int32_t fieldData = *reinterpret_cast<const int32_t*>(&record.data[offset]);
                         if (std::to_string(fieldData) == fieldValue) {
@@ -148,9 +160,11 @@ Record Table::searchTableByFieldNameAndValue(const std::string& fieldName, const
     return rec;
 }
 int Table::appendRecordFromJson(nlohmann::json json) {
+    std::cout << "Append Record from json" << std::endl;
     return appendRecord(JsonToRecord(std::move(json)));
 }
 int Table::appendRecord(const Record& record) {
+    std::cout << "Append Record" << std::endl;
     lastPrimaryKeyIndex++;
     FM.writeAt<uint32_t>(this->lastPrimaryKeyIndex, lastPrimaryKeyIndexPointer);
     return FM.appendAtTheEnd(record.data);
@@ -174,18 +188,23 @@ nlohmann::json Table::RecordToJson(Record record) {
             s.erase(std::ranges::remove(s, '\0').begin(), s.end());
             json[field.name]=s;
         }else if(field.type==4) {
-            std::string s = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length - sizeof(uint32_t));
-            s.erase(std::ranges::remove(s, '\0').begin(), s.end());
-            nlohmann::json referenceObject;
-            referenceObject["tableName"] = s;
-            referenceObject["value"] = record.getFieldData<uint32_t>(offset + field.length - sizeof(uint32_t));
-            json[field.name]=referenceObject;
+            nlohmann::json obj = nlohmann::json::object();
+            obj["value"] = record.getFieldData<uint32_t>(offset);
+            obj["TableName"] = field.tableName;
+            json[field.name] = obj;
+//            std::string s = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length - sizeof(uint32_t));
+//            s.erase(std::ranges::remove(s, '\0').begin(), s.end());
+//            nlohmann::json referenceObject;
+//            referenceObject["tableName"] = s;
+//            referenceObject["value"] = record.getFieldData<uint32_t>(offset + field.length - sizeof(uint32_t));
+//            json[field.name]=referenceObject;
         }
         offset+= field.length;
     }
     return json;
 }
 Record Table::JsonToRecord(nlohmann::json json) {
+
     std::cout << "current Last Index: " << this->lastPrimaryKeyIndex << std::endl;
     int offset = 0;
     Record record;
@@ -203,7 +222,8 @@ Record Table::JsonToRecord(nlohmann::json json) {
                 record = record.appendField(&record, json[field.name].get<uint32_t>(), field.length);
             }
         }
-        else if(field.type==3||field.type==4) {
+        else if(field.type==3) {
+            std::cout << "type 3" << std::endl;
             std::string s;
             if (field.type==3) s = json[field.name].get<std::string>();
             else if(field.type == 4 && json[field.name].is_object()) s = json[field.name].get<nlohmann::json>()["tableName"].get<std::string>();
@@ -212,10 +232,13 @@ Record Table::JsonToRecord(nlohmann::json json) {
             if(field.type == 4) {
                 record = record.appendField(&record, json[field.name].get<nlohmann::json>()["value"].get<uint32_t>(), sizeof(uint32_t));
             }
+        }else if(field.type==4) {
+            std::cout << "type 4" << std::endl;
+            record = record.appendField(&record, json[field.name]["value"].get<uint32_t>(), field.length);
         }
         offset+= field.length;
     }
-    std::cout<<"found record: " << std::endl;for (const auto& byte : record.data) {std::cout<< std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";}std::cout <<std::endl;
+    std::cout<<"record: " << std::endl;for (const auto& byte : record.data) {std::cout<< std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";}std::cout <<std::endl;
     return record;
 }
 

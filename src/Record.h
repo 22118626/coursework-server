@@ -53,7 +53,8 @@ struct FieldData {
     uint8_t type;
     uint16_t length;
     bool isPrimary;
-
+    std::string tableName;
+    uint16_t tableNameLength;
 };
 
 struct BaseType {
