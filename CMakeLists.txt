@@ -16,7 +16,17 @@ endif ()
 
 set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_LIB_DIR}/libcrypto.lib")
 set(OPENSSL_SSL_LIBRARY "${OPENSSL_LIB_DIR}/libssl.lib")
+
 # end OpenSSL Definitions
+find_program(MINGW_GCC_EXECUTABLE NAMES mingw32-gcc gcc)
+if(MINGW_GCC_EXECUTABLE)
+    get_filename_component(MINGW_BIN_PATH ${MINGW_GCC_EXECUTABLE} DIRECTORY)
+    get_filename_component(MINGW_ROOT_PATH ${MINGW_BIN_PATH} DIRECTORY)
+    message(STATUS "MinGW root path is: ${MINGW_ROOT_PATH}")
+    link_directories(${MINGW_ROOT_PATH}/bin)
+    include_directories(${MINGW_ROOT_PATH}/include)
+    #target_link_libraries(your_target PRIVATE winpthread)
+endif ()
 
 
 file(GLOB SRC_FILES src/*.cpp)
@@ -39,6 +49,6 @@ file(COPY "${CMAKE_SOURCE_DIR}/OpenSSL-Win64" DESTINATION ${CMAKE_BINARY_DIR})
 #[[find_package(OpenSSL REQUIRED)  // this line was overriding the previously defined OpenSSL directories which led cmake to have a brain fart]]
 
 #link
-target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32 ${OPENSSL_LIBRARIES} nlohmann_json::nlohmann_json)
+target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32 ${OPENSSL_LIBRARIES} nlohmann_json::nlohmann_json winpthread)
 
 

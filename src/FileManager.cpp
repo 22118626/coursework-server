@@ -111,6 +111,19 @@ int FileManager::appendAtTheEnd(const std::vector<uint8_t> &data) {
     }
     return 0;
 }
+int FileManager::modifyAtIndex(size_t index, const std::vector<uint8_t> &data) {
+    std::ofstream outfile(this->filePath, std::ios::binary | std::ios::app);
+    if(!outfile) {
+        std::cerr << "Error opening file for appending." << std::endl;
+        return 1;
+    }
+    outfile.write(reinterpret_cast<const char*>(data.data()), data.size());
+    if(!outfile.good()) {
+        std::cout << "error when writing to file " << this->filePath << std::endl;
+        return 2;
+    }
+    return 0;
+}
 
 fpos_t FileManager::currentPointerPosition() {return FileStream.tellg();}
 
