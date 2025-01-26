@@ -147,10 +147,10 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
         }
         if (json["mode"] == "remove") {
             std::cout << "REMOVING: " << json["data"].dump() <<std::endl;
-
+            Record record = table->JsonToRecord(json);
             nlohmann::json result;
-            result["code"]= table->removeRecordFromTable(json);
-            result["description"]= result==1 ? "success!" : "failed!";
+            result["code"]= table->removeRecordFromTable(record);
+            result["description"]= result==0 ? "success!" : "failed :(";
             return result;
         }
         std::cout << "dingus4" << std::endl;
@@ -166,7 +166,11 @@ nlohmann::json Database::search (nlohmann::json json, Table *table, Table *login
         nlohmann::json fromTableUser = loginTable->RecordToJson(loginTable->searchTableByFieldNameAndValue("LoginID", std::to_string(auth["LoginID"].get<uint32_t>())));
         if (auth["HashedPassword"] == fromTableUser["HashedPassword"] && table->permissionLevel <= fromTableUser["UserPrivelageFlag"]) {
             std::cout << "searching with auth: "<<table->tableName<<" with "<<json["data"]["field"]<<" "<<json["data"]["value"]<<std::endl;
-            return table->RecordToJson(table->searchTableByFieldNameAndValue(json["data"]["field"], json["data"]["value"]));
+            nlohmann::json rtrn;
+            rtrn["data"] = table->RecordToJson(table->searchTableByFieldNameAndValue(json["data"]["field"], json["data"]["value"]));
+            rtrn["code"] = 0;
+            rtrn["description"] = "Success";
+            return rtrn;
         }else {
             std::cout << "Not found" << std::endl;
             nlohmann::json rtrn;

@@ -173,8 +173,31 @@ int Table::appendRecord(const Record& record) {
 int Table::removeRecordFromTable(nlohmann::json json) {
     this->searchTableByFieldNameAndValue(json["data"]["field"], json["data"]["value"]);
     nlohmann::json rtrn = nlohmann::json::object();
-    return FM.modifyAtIndex(this->recentIndex,JsonToRecord(std::move(json)).data);
+    std::vector<unsigned char> recordLengthWipeBytes;
+    recordLengthWipeBytes.resize(this->recordSize, 0x00);
+    return FM.modifyAtIndex(this->recentIndex,recordLengthWipeBytes);
+}
+int Table::removeRecordFromTable(Record record) {
+    fpos_t cpp = getPointerOfRecord(record);
+    if(cpp!=0) {
+        std::vector<unsigned char> recordLengthWipeBytes;
+        recordLengthWipeBytes.resize(this->recordSize, 0x00);
+        return FM.modifyAtPointer(cpp, recordLengthWipeBytes);
+    }
+    return 1;
+}
 
+fpos_t Table::getPointerOfRecord(Record record) {
+    FM.setPointerLoc(FM.dataStart);
+    for (int i = 1; i < (FM.getFileSize() - FM.dataStart /
+                                            this->recordSize); i++) { //i = 1 may be incorrect and miss out the last record come back later if issues
+        fpos_t CPP = FM.currentPointerPosition();
+        std::vector<uint8_t> rec = FM.readBytes(this->recordSize);
+        if (record.data == rec) {
+            return CPP;
+        }
+    }
+    return 0;
 }
 
 

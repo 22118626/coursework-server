@@ -124,6 +124,11 @@ int FileManager::modifyAtIndex(size_t index, const std::vector<uint8_t> &data) {
     }
     return 0;
 }
+int FileManager::modifyAtPointer(fpos_t pointer, const std::vector<uint8_t> &data) {
+    //FileStream.seekg(pointer);
+    std::cout << "pointer -- "<< pointer << "\ndata -- "; for (const auto& byte : data) {std::cout<< std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";}; std::cout<< std::endl;
+    return 0;
+}
 
 fpos_t FileManager::currentPointerPosition() {return FileStream.tellg();}
 
