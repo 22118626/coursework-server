@@ -39,6 +39,7 @@ public:
     int appendRecord(const Record& record);
     int removeRecordFromTable(nlohmann::json json);
     int removeRecordFromTable(Record record);
+    int modifyRecordFromOldRecord(Record newRec);
 
 private:
     FileManager FM;
@@ -47,8 +48,10 @@ private:
 
     void addDataTypeToRecord(Record *record, const std::string &name, int type, int dataLength);
     std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool> readRecord(int index);
-
     fpos_t getPointerOfRecord(Record record);
+    void setPrimaryKeyIndex(int keyIndex);
+    FieldData PrimaryField;
+
 };
 
 

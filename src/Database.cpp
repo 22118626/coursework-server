@@ -25,11 +25,11 @@ std::shared_ptr<Database> &Database::GetInstance() {
 
 void Database::Init() {
 
-    std::string path = "../tables";
+    std::string path = "./tables";
 
     try{
         for(const auto &entry : fs::directory_iterator(path)) {
-            if(entry.is_regular_file() && entry.path().extension().string() == ".bdb") {
+            if(entry.is_regular_file() && entry.path().extension().string() == ".bdb" && !(entry.path().filename().string().starts_with(".") || entry.path().filename().string().starts_with("~"))) { // not a directory AND contains ".bdb" extension AND file name does not start with "."OR"~"
                 std::cout << "path: " << entry.path() << std::endl;
                 this->tables.push_back(std::make_shared<Table>(entry.path().string()));
                 this->tables.at(this->tables.size()-1).get()->initializeTable();
@@ -63,16 +63,13 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
         nlohmann::json jsonDataArray;
         std::shared_ptr<Table> loginTable;
         jsonDataArray = json["data"];
-        std::cout << "dingus" << std::endl;
 
         for(const std::shared_ptr<Table>& table1 : this->tables) {
             if(table1->tableName == "Login") loginTable = table1;
         }
-        std::cout << "dingus2" << std::endl;
         if (json["mode"] == "authenticate") {
             std::cout << "authenticating "<<" with "<<json["data"]["username"]<<" "<<jsonDataArray["password"]<<std::endl;
             nlohmann::json val = loginTable->RecordToJson(loginTable->searchTableByFieldNameAndValue("Username", jsonDataArray["username"]));
-            std::cout << val.dump(2) << std::endl;
             nlohmann::json rtrn;
             if(val["Username"] == jsonDataArray["username"] && val["HashedPassword"] == jsonDataArray["password"]) {
                 rtrn["privileged"] = val["UserPrivelageFlag"] > 0;
@@ -87,24 +84,17 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
         std::cout << "dingus3" << std::endl;
         if(json["mode"] == "getTables") {
 
-            std::cout<<0<<std::endl;
             nlohmann::json rtrnjson = nlohmann::json::object();
             rtrnjson["data"] = nlohmann::json::object();
             rtrnjson["data"]["array"] = nlohmann::json::array();
             if (true) { // auth*
-                std::cout<<1<<std::endl;
                 for(auto &tbl : this->tables)  {
-                    std::cout<<2<<std::endl;
                     if(json["authentication"]["UserPrivelageFlag"] >= tbl->permissionLevel) {
-                        std::cout<<3<<std::endl;
-                        std::cout << tbl->tableName << std::endl;
                         nlohmann::json tablejson =nlohmann::json::object();
                         tablejson["tableName"] = tbl->tableName;
                         tablejson["array"]=nlohmann::json::array();
-                        std::cout<<4<<std::endl;
 
                         for (FieldData i : tbl->structureRecord ) {
-                            std::cout<<5<<std::endl;
                             nlohmann::json fieldjson = nlohmann::json::object();
                             fieldjson["name"] = i.name;
                             fieldjson["length"] = i.length;
@@ -113,7 +103,6 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
 
                             tablejson["array"].push_back(fieldjson);
                         }
-                        std::cout<<6<<std::endl;
                         rtrnjson["data"]["array"].push_back(tablejson);
 
 
@@ -147,13 +136,20 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
         }
         if (json["mode"] == "remove") {
             std::cout << "REMOVING: " << json["data"].dump() <<std::endl;
-            Record record = table->JsonToRecord(json);
+            Record record = table->JsonToRecord(jsonDataArray);
             nlohmann::json result;
             result["code"]= table->removeRecordFromTable(record);
             result["description"]= result==0 ? "success!" : "failed :(";
             return result;
         }
-        std::cout << "dingus4" << std::endl;
+        if (json["mode"] == "modify") {
+            std::cout << "MODIFYING: " << json["data"].dump() <<std::endl;
+            Record record = table->JsonToRecord(jsonDataArray);
+            nlohmann::json result;
+            result["code"]= table->modifyRecordFromOldRecord(record);
+            result["description"]= result["code"]==0 ? "success!" : "failed :(";
+            return result;
+        }
     }
     json["code"] = -1;
     json["description"] = "mode not found";

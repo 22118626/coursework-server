@@ -44,6 +44,7 @@ bool FileManager::openFile(const std::string& filePath) {
 void FileManager::setPointerLoc(fpos_t addr) {
     this->pointerpos = addr;
     FileStream.seekg(addr);
+    FileStream.seekp(addr);
 }
 uint8_t FileManager::readNextUint8_t() {
     uint8_t value;
@@ -112,7 +113,7 @@ int FileManager::appendAtTheEnd(const std::vector<uint8_t> &data) {
     return 0;
 }
 int FileManager::modifyAtIndex(size_t index, const std::vector<uint8_t> &data) {
-    std::ofstream outfile(this->filePath, std::ios::binary | std::ios::app);
+    std::ofstream outfile(this->filePath, std::ios::binary | std::ios::in | std::ios::out);
     if(!outfile) {
         std::cerr << "Error opening file for appending." << std::endl;
         return 1;
@@ -125,8 +126,54 @@ int FileManager::modifyAtIndex(size_t index, const std::vector<uint8_t> &data) {
     return 0;
 }
 int FileManager::modifyAtPointer(fpos_t pointer, const std::vector<uint8_t> &data) {
-    //FileStream.seekg(pointer);
-    std::cout << "pointer -- "<< pointer << "\ndata -- "; for (const auto& byte : data) {std::cout<< std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";}; std::cout<< std::endl;
+    setPointerLoc(pointer);
+    FileStream.write(reinterpret_cast<const char*>(data.data()), data.size());
+    std::cout << "pointer -- "<< pointer << "\ndata -- "; for (const auto& byte : data){
+        std::cout<<std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";
+    } std::cout<< std::endl;
+    return 0;
+}
+
+int FileManager::ShiftDataFromfpos(fpos_t fpos, long shift) {
+    //copy a temp file with same name and location but with ~ at the beginning of the name eg ".\gilbert.bdb" -> ".\~gilbert.bdb"
+    std::string tempFile = (std::filesystem::path(this->filePath).parent_path() / ("~"+
+                           std::filesystem::path(this->filePath).filename().string())).string();
+    std::cout << "new file name is: " << tempFile << std::endl;
+    closeFile();
+    if (std::filesystem::exists(tempFile)) std::filesystem::remove(tempFile);
+    std::filesystem::copy_file(this->filePath,tempFile,std::filesystem::copy_options::overwrite_existing);
+    try {
+        //  open the new file and modify it
+        if (!openFile(tempFile)) {throw std::runtime_error("could not open file -> "+tempFile);};
+        this->setPointerLoc(fpos);
+
+        std::cout<<this->getFileSize()<<"\t"<<fpos<<" pointer:"<<this->getFileSize() - fpos<<std::endl;
+        std::vector<uint8_t> movingBytes = readBytes(this->getFileSize() - fpos);
+        std::filesystem::resize_file(std::filesystem::path(tempFile), file_size(std::filesystem::path(tempFile))+shift);
+        if (shift > 0) { // oly if the data is shifted down/extended the file fill data from fpos to new index as 0s to prevent duplicate data
+            std::vector<uint8_t> fillerData;
+            fillerData.insert(fillerData.end(), shift, 0x00);
+            modifyAtPointer(fpos, fillerData);
+        }
+        std::cout<<"record: " << std::endl;for (const auto& byte : movingBytes) {std::cout<< std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";}std::cout <<std::endl;
+
+        // write the bytes
+        modifyAtPointer(fpos + shift, movingBytes);
+
+        if (!openFile(this->filePath)) {throw std::runtime_error("could not open file -> "+this->filePath);};
+    }
+    catch (const std::exception& ex) {
+        std::cerr << "error occured trying to make changes to temporary file tempfile("<<tempFile<<")"<<std::endl<<ex.what()<<std::endl;
+        return -1;
+    }
+    // copy successfully modified file back over the original one; and if copying was successful remove the tempFile;
+
+    closeFile();
+    std::cout << "ending" << std::endl;
+    std::filesystem::remove(this->filePath);
+    std::filesystem::rename(tempFile, this->filePath);
+    openFile(this->filePath);
+    std::cout << "tralala" << std::endl;
     return 0;
 }
 

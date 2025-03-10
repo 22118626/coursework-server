@@ -166,9 +166,12 @@ int Table::appendRecordFromJson(nlohmann::json json) {
 }
 int Table::appendRecord(const Record& record) {
     std::cout << "Append Record" << std::endl;
-    lastPrimaryKeyIndex++;
-    FM.writeAt<uint32_t>(this->lastPrimaryKeyIndex, lastPrimaryKeyIndexPointer);
+    setPrimaryKeyIndex(this->lastPrimaryKeyIndex+1);
     return FM.appendAtTheEnd(record.data);
+}
+void Table::setPrimaryKeyIndex(int keyIndex) {
+    this->lastPrimaryKeyIndex = keyIndex;
+    FM.writeAt<uint32_t>(keyIndex, lastPrimaryKeyIndexPointer);
 }
 int Table::removeRecordFromTable(nlohmann::json json) {
     this->searchTableByFieldNameAndValue(json["data"]["field"], json["data"]["value"]);
@@ -177,12 +180,22 @@ int Table::removeRecordFromTable(nlohmann::json json) {
     recordLengthWipeBytes.resize(this->recordSize, 0x00);
     return FM.modifyAtIndex(this->recentIndex,recordLengthWipeBytes);
 }
+int Table::modifyRecordFromOldRecord(Record newRec) {
+    for(auto field : this->structureRecord) {
+        if(field.isPrimary) {
+            this->PrimaryField = field;
+        }
+    }
+    fpos_t position = getPointerOfRecord(searchTableByFieldNameAndValue(this->PrimaryField.name,
+            std::to_string(this->RecordToJson(newRec)[this->PrimaryField.name].get<uint32_t>())));
+    return FM.modifyAtPointer(position, newRec.data);
+}
 int Table::removeRecordFromTable(Record record) {
     fpos_t cpp = getPointerOfRecord(record);
     if(cpp!=0) {
-        std::vector<unsigned char> recordLengthWipeBytes;
-        recordLengthWipeBytes.resize(this->recordSize, 0x00);
-        return FM.modifyAtPointer(cpp, recordLengthWipeBytes);
+        int val = FM.ShiftDataFromfpos(cpp+recordSize,-recordSize);
+        setPrimaryKeyIndex(this->lastPrimaryKeyIndex-1);
+        return val;
     }
     return 1;
 }
@@ -234,31 +247,34 @@ nlohmann::json Table::RecordToJson(Record record) {
     return json;
 }
 Record Table::JsonToRecord(nlohmann::json json) {
-
-    std::cout << "current Last Index: " << this->lastPrimaryKeyIndex << std::endl;
+    std::cout <<json<<"\ncurrent Last Index: " << this->lastPrimaryKeyIndex << std::endl;
     int offset = 0;
     Record record;
     for(const FieldData &field : this->structureRecord) {
         std::cout << field.name << std::endl;
         if(field.isPrimary) {
-            record = record.appendField<uint32_t>(&record,lastPrimaryKeyIndex+1, field.length);
+            record = record.appendField<uint32_t>(&record,json[field.name].get<uint32_t>(), field.length);
             continue;
         }
         if(field.type==2 || field.type==1){
             if(field.length == 2) {
+                std::cout <<"intValue: "<< json[field.name].get<uint16_t>() << std::endl;
                 record = record.appendField(&record, json[field.name].get<uint16_t>(), field.length);
             }
             if(field.length == 4) {
                 record = record.appendField(&record, json[field.name].get<uint32_t>(), field.length);
+                std::cout <<"int2Value: "<< json[field.name].get<uint16_t>() << std::endl;
             }
         }
         else if(field.type==3) {
             std::cout << "type 3" << std::endl;
             std::string s;
+            std::cout << json.dump(2) << std::endl;
+            std::cout << field.type << "\t" << field.name << "\t" << field.name.size() << std::endl;
             if (field.type==3) s = json[field.name].get<std::string>();
             else if(field.type == 4 && json[field.name].is_object()) s = json[field.name].get<nlohmann::json>()["tableName"].get<std::string>();
             s.resize(field.length, 0x00);
-            record = record.appendStringField(&record, s, field.length-sizeof(uint32_t));
+            record = record.appendStringField(&record, s, field.length); //-sizeof(uint32_t));
             if(field.type == 4) {
                 record = record.appendField(&record, json[field.name].get<nlohmann::json>()["value"].get<uint32_t>(), sizeof(uint32_t));
             }

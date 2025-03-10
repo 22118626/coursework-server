@@ -46,13 +46,14 @@ public:
 
     fpos_t currentPointerPosition();
     void changeFilePath(const std::string &newPath);
+    int ShiftDataFromfpos(fpos_t fpos, long shift);
 
     template<typename T>
     int writeAt(const T& change, fpos_t offset) {
         fpos_t temp = FileStream.tellg();
-        FileStream.seekg(offset);
+        setPointerLoc(offset);
         FileStream.write(reinterpret_cast<const char*>(&change), sizeof(T));
-        FileStream.seekg(temp);
+        setPointerLoc(temp);
         return 0;
     }
 

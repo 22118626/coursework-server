@@ -8,10 +8,12 @@ include(FetchContent)
 set(OPENSSL_ROOT_DIR "${CMAKE_SOURCE_DIR}/OpenSSL-Win64")
 set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
 
+set(OPENSSL_USE_STATIC_LIBS TRUE)
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug") #static libraries or static debug depending on build type
-    set(OPENSSL_LIB_DIR "${OPENSSL_ROOT_DIR}/lib/VC/x64/MDd")
+    set(OPENSSL_LIB_DIR "${OPENSSL_ROOT_DIR}/lib/VC/x64/MTd")
 else ()
-    set(OPENSSL_LIB_DIR "${OPENSSL_ROOT_DIR}/lib/VC/x64/MD")
+    set(OPENSSL_LIB_DIR "${OPENSSL_ROOT_DIR}/lib/VC/x64/MT")
 endif ()
 
 set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_LIB_DIR}/libcrypto.lib")
@@ -28,6 +30,16 @@ if(MINGW_GCC_EXECUTABLE)
     #target_link_libraries(your_target PRIVATE winpthread)
 endif ()
 
+# Force static linking of winpthread
+if(MINGW)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+
+    # Ensure static libraries are used
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc")
+
+endif()
+
 
 file(GLOB SRC_FILES src/*.cpp)
 
@@ -40,15 +52,24 @@ fetchcontent_declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-add_executable(coursework-server ${SRC_FILES})
-
+#include_directories(${OPENSSL_INCLUDE_DIR})
 set(OPENSSL_LIBRARIES "${OPENSSL_SSL_LIBRARY};${OPENSSL_CRYPTO_LIBRARY}")
 
-file(COPY "${CMAKE_SOURCE_DIR}/OpenSSL-Win64" DESTINATION ${CMAKE_BINARY_DIR})
 
-#[[find_package(OpenSSL REQUIRED)  // this line was overriding the previously defined OpenSSL directories which led cmake to have a brain fart]]
+
+add_executable(coursework-server ${SRC_FILES})
+
+#file(COPY "${CMAKE_SOURCE_DIR}/OpenSSL-Win64" DESTINATION ${CMAKE_BINARY_DIR})
+
+#[=[find_package(OpenSSL REQUIRED)  // this line was overriding the previously defined OpenSSL directories which led cmake to have a brain fart]=]
 
 #link
-target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32 ${OPENSSL_LIBRARIES} nlohmann_json::nlohmann_json winpthread)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+        ws2_32
+        ${OPENSSL_LIBRARIES}
+        nlohmann_json::nlohmann_json
+        Threads::Threads
+        #"D:/Program Files/CLion 2024.2.2/bin/mingw/x86_64-w64-mingw32/lib/libwinpthread.a"
+)
 
 
