@@ -23,6 +23,7 @@ std::shared_ptr<Database> &Database::GetInstance() {
     return instance;
 }
 
+// initializes the database object and loads all .bdb files in the .\tables\ directory as individual Table onjects
 void Database::Init() {
 
     std::string path = "./tables";
@@ -37,39 +38,33 @@ void Database::Init() {
         }
         for(const auto &table : this->tables) {
             std::cout << "TableName: " << table->tableName << std::endl;
+            if(table->tableName == "login") {
+                Database::loginTable = table;
+            }
         }
         std::cout<<"finished Initializing Database 😁"<<std::endl;
     }catch (const fs::filesystem_error &e) {std::cerr << "error in Database.cpp/Database::int(): " << e.what() << e.code() << std::endl;}
 
 }
 
-int Database::UseTable(nlohmann::json json) {
-    for(const auto &table : this->tables) {
-        if(table->tableName == json["tableName"].get<std::string>()) {
-            continue;
-        }
-    }
-    return 0;
-}
-
+// interprests what the client has sent and executes the commands
 nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
-
+    // informs the user what command is being parsed and about to be executed
     std::cout << "Parsing: \t\t"<< jstring << std::endl;
     nlohmann::json json;
     json = nlohmann::json::parse(jstring);
     std::cout << json.dump(2) << std::endl;
 
+    //itterates through the tables and selects it based on hte table provided by the user
     for (const auto &table : this->tables) {
         nlohmann::json jsonDataArray;
-        std::shared_ptr<Table> loginTable;
         jsonDataArray = json["data"];
 
-        for(const std::shared_ptr<Table>& table1 : this->tables) {
-            if(table1->tableName == "Login") loginTable = table1;
-        }
+
+        // the client wants to login to the program this validates the request
         if (json["mode"] == "authenticate") {
             std::cout << "authenticating "<<" with "<<json["data"]["username"]<<" "<<jsonDataArray["password"]<<std::endl;
-            nlohmann::json val = loginTable->RecordToJson(loginTable->searchTableByFieldNameAndValue("Username", jsonDataArray["username"]));
+            nlohmann::json val = Database::loginTable->RecordToJson(Database::loginTable->searchTableByFieldNameAndValue("Username", jsonDataArray["username"]));
             nlohmann::json rtrn;
             if(val["Username"] == jsonDataArray["username"] && val["HashedPassword"] == jsonDataArray["password"]) {
                 rtrn["privileged"] = val["UserPrivelageFlag"] > 0;
@@ -81,18 +76,20 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
             rtrn["access"] = false;
             return rtrn;
         }
-        std::cout << "dingus3" << std::endl;
+        // client requests all tables that the user has access to
         if(json["mode"] == "getTables") {
 
             nlohmann::json rtrnjson = nlohmann::json::object();
             rtrnjson["data"] = nlohmann::json::object();
             rtrnjson["data"]["array"] = nlohmann::json::array();
-            if (true) { // auth*
+            if (Database::AuthenticateUser(json["authentication"])) { // auth*
                 for(auto &tbl : this->tables)  {
+                    // if statement validates that the users permission is higher or equal to the table that is being checked
                     if(json["authentication"]["UserPrivelageFlag"] >= tbl->permissionLevel) {
                         nlohmann::json tablejson =nlohmann::json::object();
                         tablejson["tableName"] = tbl->tableName;
                         tablejson["array"]=nlohmann::json::array();
+                        // gives all table data for the client to interpret
 
                         for (FieldData i : tbl->structureRecord ) {
                             nlohmann::json fieldjson = nlohmann::json::object();
@@ -117,7 +114,7 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
             rtrnjson["description"] = "incorrect auth token";
             return rtrnjson;
         }
-
+        // pretty much these are just wrapper functions and self-explanatory
         if(table->tableName != json["tableName"].get<std::string>()) {
             std::cout<<"TableName: "<<table->tableName<<std::endl;
             continue;
@@ -126,7 +123,7 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
             jsonDataArray = json["data"];
         } else continue;
         if (json["mode"] == "search") {
-            return  search(json, table.get(), loginTable.get());
+            return  search(json, table.get());
         }
         if (json["mode"] == "append") {
             std::cout << "appending "<<table->tableName<<"("+json["tableName"].get<std::string>()+") with "<<jsonDataArray.dump()<<std::endl;
@@ -156,10 +153,10 @@ nlohmann::json Database::parseDatabaseCommand(std::string jstring) {
     return json;
 
 }
-nlohmann::json Database::search (nlohmann::json json, Table *table, Table *loginTable) {
+nlohmann::json Database::search (nlohmann::json json, Table *table) {
     if(table->permissionLevel != 0) {
         nlohmann::json auth = json["authentication"].get<nlohmann::json>();
-        nlohmann::json fromTableUser = loginTable->RecordToJson(loginTable->searchTableByFieldNameAndValue("LoginID", std::to_string(auth["LoginID"].get<uint32_t>())));
+        nlohmann::json fromTableUser = Database::loginTable->RecordToJson(Database::loginTable->searchTableByFieldNameAndValue("LoginID", std::to_string(auth["LoginID"].get<uint32_t>())));
         if (auth["HashedPassword"] == fromTableUser["HashedPassword"] && table->permissionLevel <= fromTableUser["UserPrivelageFlag"]) {
             std::cout << "searching with auth: "<<table->tableName<<" with "<<json["data"]["field"]<<" "<<json["data"]["value"]<<std::endl;
             nlohmann::json rtrn;
@@ -182,6 +179,14 @@ nlohmann::json Database::search (nlohmann::json json, Table *table, Table *login
         rtrn["description"] = "Failed authentication (Accessing Higher Level requirement Table)";
         return rtrn;
     }
+}
+
+bool Database::AuthenticateUser(nlohmann::json userData) {
+    nlohmann::json val = Database::loginTable->RecordToJson(Database::loginTable->searchTableByFieldNameAndValue("Username", userData["username"]));
+    if(val["Username"] == userData["username"] && val["HashedPassword"] == userData["password"]) {
+        return true;
+    }
+    return false;
 }
 
 std::string hash(std::string string) {

@@ -22,8 +22,9 @@ private:
     Database();
     static std::shared_ptr<Database> instance;
     std::vector<std::shared_ptr<Table>> tables;
-    static nlohmann::json search(nlohmann::json json, Table* table, Table* loginTable);
-
+    static nlohmann::json search(nlohmann::json json, Table* table);
+    static bool AuthenticateUser(nlohmann::json userData);
+    static std::shared_ptr<Table> loginTable;
 };
 
 
