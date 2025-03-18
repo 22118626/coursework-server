@@ -146,7 +146,7 @@ void CLIApp::emulateDbConnection(const std::string& args) {
     std::shared_ptr<Database> db = Database::GetInstance();
     auto map = CommandParser(args);
     std::cout << map["arg"] << std::endl;
-    auto returns = db->parseDatabaseCommand(map["arg"]);
+    auto returns = db->parseDatabaseCommand(nlohmann::json::parse(map["arg"]), 0);
     std::cout << returns.dump(2) << std::endl;
 }
 

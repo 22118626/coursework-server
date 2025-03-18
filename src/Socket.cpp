@@ -149,7 +149,7 @@ void Socket::handleClient(SSL* ssl, SOCKET clientSocket) {
     if (bytesReceived > 0) {
         std::cout << "Received message from client: " << std::string(buffer, bytesReceived) << std::endl;
         std::cout << std::string(buffer) << std::endl;
-        const std::string message = db->parseDatabaseCommand(std::string(buffer, bytesReceived)).dump() + "\r\n";
+        const std::string message = db->parseDatabaseCommand(nlohmann::json::parse(std::string(buffer, bytesReceived)), 0).dump() + "\r\n";
         std::cout << "sending: " << message << std::endl;
         SSL_write(ssl, message.c_str(), message.size());
     }
