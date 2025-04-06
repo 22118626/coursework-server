@@ -59,7 +59,7 @@ set(OPENSSL_LIBRARIES "${OPENSSL_SSL_LIBRARY};${OPENSSL_CRYPTO_LIBRARY}")
 
 add_executable(coursework-server ${SRC_FILES})
 
-#file(COPY "${CMAKE_SOURCE_DIR}/OpenSSL-Win64" DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY "${CMAKE_SOURCE_DIR}/OpenSSL-Win64" DESTINATION ${CMAKE_BINARY_DIR})
 
 #[=[find_package(OpenSSL REQUIRED)  // this line was overriding the previously defined OpenSSL directories which led cmake to have a brain fart]=]
 

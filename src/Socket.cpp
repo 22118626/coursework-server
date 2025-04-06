@@ -56,7 +56,7 @@ bool Socket::start(int port) {
         std::cerr << "Unable to load certificate or key please create one in the window that will soon appear then run the command aggain" << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds (5));
         //executes a cmd command to create a key and then asks user to fillout form to create a certificate, to be used for ssl/tls encrypted packets between client and server.
-        int cmdresult = system("cmd.exe /c echo the files will be created in \"%cd%\" && "
+        int cmdresult = system("cmd.exe /c echo Note: the files will be created in \"%cd%\" && "
                                ".\\OpenSSL-Win64\\bin\\openssl.exe genrsa -out server.key 2048 &&"
                                "set OPENSSL_CONF=%cd%\\OpenSSL-Win64\\bin\\cnf\\openssl.cnf &&"
                                ".\\OpenSSL-Win64\\bin\\openssl.exe req -x509 -key server.key -out ServerCertificate.crt");
@@ -112,6 +112,7 @@ bool Socket::start(int port) {
 void Socket::SocketConnectionLoop() {
     while (running) {
         // Accept clients
+        std::cout << "idk" << std::endl;
         sockaddr_in clientAddr{};
         int clientSize = sizeof(clientAddr);
         SOCKET clientSocket = accept(serverSocket, (sockaddr*)&clientAddr, &clientSize);

@@ -32,23 +32,46 @@ const std::string availablefiles[] = {
 };
 
 bool CertSocket::start(int port) {
-    std::cout << "CertSocket::start" << std::endl;
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        std::cerr << "WSAStartup failed" << std::endl;
+        return false;
+    }
+
+    std::cout << "CertSocket::start port:" << port << std::endl;
     certsocket = socket(AF_INET, SOCK_STREAM, 0);
 
-    sockaddr_in server;
+    sockaddr_in server{};
     server.sin_family = AF_INET;
     server.sin_port = htons(port);
     server.sin_addr.s_addr = INADDR_ANY;
-    bind(certsocket, (sockaddr*)&server, sizeof(server));
-    listen(certsocket, 5);
-    for (int intelCoreI3 = 0; intelCoreI3 < 10; intelCoreI3++) {
+
+    if (bind(certsocket, reinterpret_cast<sockaddr *>(&server), sizeof(server)) == SOCKET_ERROR) {
+        std::cerr << "Bind failed: " << WSAGetLastError() << std::endl;
+        return false;
+    }
+
+    if (listen(certsocket, 5) == SOCKET_ERROR) {
+        std::cerr << "Listen failed: " << WSAGetLastError() << std::endl;
+        return false;
+    }
+    running = true;
+    std::thread connectionLoopThread(&CertSocket::ConnectionLoop, this);
+    connectionLoopThread.detach();
+
+    return true;
+}
+
+void CertSocket::ConnectionLoop() {
+    while (running) {
+        //std::cout << "running" << std::endl;
         int ClientSocket = accept(certsocket, nullptr, nullptr);
+        //std::cout << "accept: " << ClientSocket << std::endl;
         uint8_t buffer[16] = {0};
         ssize_t bytesRead = recv(ClientSocket, reinterpret_cast<char*>(buffer), sizeof(buffer), 0);
 
         if (bytesRead == -1) {
             closesocket(certsocket);
-            perror("recv");
             continue;
         }
 
@@ -60,10 +83,7 @@ bool CertSocket::start(int port) {
         }*/
         std::cout << static_cast<int>(fileRequest) << " and " << availablefiles[fileRequest] << "\t\t\t" << availablefiles[0] << std::endl;
         sendCertificate(ClientSocket, availablefiles[fileRequest]);
-
     }
-
-    return true;
 }
 
 void CertSocket::sendCertificate(SOCKET clientSocket, const std::string &certFile) {
@@ -86,6 +106,10 @@ void CertSocket::sendCertificate(SOCKET clientSocket, const std::string &certFil
     uint16_t clientPort;
     std::cout << filesize << " sent certificate: " << certFile << " (" << filesize << " bytes) to client" << std::endl;
     closesocket(clientSocket);
+}
+
+void CertSocket::stop() {
+    running = false;
 }
 
 

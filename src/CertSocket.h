@@ -16,14 +16,16 @@ public:
     ~CertSocket() override;
 
     bool start(int port) override;
+    void stop();
 
 private:
-    void sendCertificate(SOCKET clientSocket, const std::string &certFile);
-
     SOCKET certsocket;
     SOCKET serverSocket;
     Socket socketInstance;
+    bool running;
 
+    void ConnectionLoop();
+    static void sendCertificate(SOCKET clientSocket, const std::string &certFile);
 
 };
 
