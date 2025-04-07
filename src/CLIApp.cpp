@@ -11,6 +11,20 @@
 #include "Table.h"
 
 
+// uses formula x + baseValue + (x + multiplier) to make a max length of a string to allow for small changes after the table is created.
+uint16_t maxStringLength(int input) {
+    constexpr int baseValue = 7;
+    constexpr float multiplier = 0.1;
+    const uint16_t value = input + baseValue + static_cast<int>(std::ceil(input * multiplier));
+    return value;
+}
+
+std::string padString(std::string string, int targetLength) {
+    if (targetLength - string.length() > 0) {
+        string.append(targetLength - string.length(), '\0');
+    }
+    return string;
+}
 // initializes basic commands by linking methods to individual keywords and pass the arguments to those functions if needed
 CLIApp::CLIApp() {
     commands["connect"] = [this](const std::string& args) {this->ConnectToSocket(args);};
@@ -21,6 +35,7 @@ CLIApp::CLIApp() {
     commands["certServer"] = [this](const std::string& args) {this->certsocket(args);};
     commands["TableTest"] = [this](const std::string& args) {this->TableTest(args);};
     commands["emulateIncomingConnection"] = [this](const std::string& args) {this->emulateDbConnection(args);};
+    commands["createTable"] = [this](const std::string&) {this->createTable();};
     // enable a looping condition to allow for constantly listening for new commands sent by the user
     this->running=true;
 }
@@ -101,7 +116,6 @@ void CLIApp::exit() {
     this->running = false;
 }
 void CLIApp::checkdb() {
-    std::cout << "checkdb" << std::endl;
     FileManager fileManager("file.bin");
     fileManager.readHeader();
     fileManager.closeFile();
@@ -168,4 +182,96 @@ std::unordered_map<std::string, std::string> CLIApp::CommandParser(const std::st
 
     }
     return commandpairs;
+}
+
+void CLIApp::createTable() {
+    std::string input;
+
+    std::cout << "table name:"; std::getline(std::cin, input);
+    std::string tableName = input;
+    if (input.empty()) {std::cout <<"input empty quiting"<<std::endl;return;}
+    //create the file
+    std::fstream file("./tables/" + input + ".bdb", std::ios::app);
+    file.close();
+    // open the file with in/out binary
+    std::fstream output("./tables/" + input + ".bdb", std::ios::in | std::ios::out | std::ios::binary);
+
+    if (!output) {std::cerr << "failed to open or create file" << std::endl;return;}
+    // beginning of the file
+    output.seekp(0, std::ios::beg);
+    // temporarely set beginning of "dataStart to pointer 1024
+    uint32_t datastart = 1024;
+    output.write(reinterpret_cast<char*>(&datastart), sizeof(uint32_t));
+    std::cout << std::endl << "permission level (0 = everyone) : "; std::getline(std::cin, input);
+    if (input.empty()) {std::cout <<"input empty quiting"<<std::endl;return;}
+    try {
+        // write permissionlevel to file
+        int tmp = std::stoi(input);
+        output.write(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));
+    } catch (std::exception &e) {
+        std::cout <<"\"" <<input << "\" is not a valid number" << std::endl;
+    }
+    // write name of the table to file
+    uint16_t maxstringlength = maxStringLength(tableName.length());
+    output.write(reinterpret_cast<char*>(&maxstringlength), sizeof(uint16_t));
+    output.write(padString(tableName, maxstringlength).data(), maxstringlength);
+    // 0 because no records will be in the table
+    int tmp = 0;
+    output.write(reinterpret_cast<char*>(&tmp), sizeof(uint32_t));
+    std::cout << std::endl << "how many fields are in the table? (first is primary and must be uint32_t):"; std::getline(std::cin, input);
+    if (input.empty()) {std::cout <<"input empty quiting"<<std::endl;return;}
+    try {
+        int tmp = std::stoi(input);
+        output.write(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));
+        std::string inp;
+        for (int i = 0 ; i < std::stoi(input) ; i++) {
+            std::cout << std::endl << "what is the name of the field? : "; std::getline(std::cin, inp);
+            if (inp.empty()) {std::cout <<"input empty quiting"<<std::endl;return;}
+            uint16_t tmp = maxStringLength(inp.length());
+            output.write(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));
+            output.write(padString(inp, maxStringLength(inp.length())).data(), maxStringLength(inp.length()));
+            std::cout << std::endl << "what is the type of the field?\n1 = uint16_t\n2 = uint32_t\n3 = string\n4 = foreign key";
+            std::getline(std::cin, inp);
+            if (inp.empty()) {std::cout <<"input empty quiting"<<std::endl;return;}
+            try {
+                int tmp = std::stoi(inp);
+                output.write(reinterpret_cast<char*>(&tmp), sizeof(uint8_t));
+
+            } catch (std::exception &e) {
+                std::cerr <<"\"" <<input << "\" is not a valid number. \nexiting" << std::endl;
+            }
+            if (std::stoi(inp) == 1) {
+                int tmp = 2;
+                output.write(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));
+            }if (std::stoi(inp) == 2) {
+                int tmp =4;
+                output.write(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));
+            }if (std::stoi(inp) == 3) {
+                std::string fieldlengthinput;
+                std::cout << std::endl << "what is the max length of the string? : "; std::getline(std::cin, fieldlengthinput);
+                int tmp = std::stoi(fieldlengthinput);
+                try {output.write(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));}
+                catch (std::exception &e) {std::cerr <<"\"" <<input << "\" is not a valid number. \nexiting" << std::endl;return;}
+            }if (std::stoi(inp) == 4) {
+                output.write(reinterpret_cast<char*>(4), sizeof(uint16_t));
+                std::string tablenameinput;
+                std::cout << std::endl << "what table name if this linking to? : "; std::getline(std::cin, tablenameinput);
+                int tmp = maxStringLength(tablenameinput.length());
+                output.write(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));
+                output.write(padString(tablenameinput, maxStringLength(tablenameinput.length())).data(), maxStringLength(tablenameinput.length()));
+            }
+        }
+    } catch (std::exception &e) {
+        std::cout <<"\"" <<input << "\" is not a valid number" << std::endl;
+    }
+    int lastbyte = output.tellp();
+    int newDataStart = maxStringLength(lastbyte);
+    std::string zeroing = "";
+    zeroing = padString(zeroing, newDataStart-lastbyte);
+    output.write(zeroing.data(), zeroing.length());
+    output.seekp(0, std::ios::beg);
+    output.write(reinterpret_cast<char*>(&newDataStart), sizeof(uint32_t));
+
+    std::cout << std::endl << "\n\nfinished writing all fields\nsuccessfully created the file :)" << std::endl;
+    output.close();
 }

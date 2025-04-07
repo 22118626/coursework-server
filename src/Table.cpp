@@ -32,9 +32,7 @@ void Table::initializeTable() {
     this->FM.setPointerLoc(0);
     this->FM.readHeader();
     this->lastPrimaryKeyIndexPointer = this->FM.currentPointerPosition();
-    std::cout << this->lastPrimaryKeyIndexPointer << std::endl;
     this->lastPrimaryKeyIndex = this->FM.readNextInt32_t();
-    std::cout << this->lastPrimaryKeyIndex << std::endl;
 
     int16_t NumOfFields = this->FM.readNextInt16_t();
     std::vector<std::string> fields(NumOfFields,"");
@@ -102,69 +100,78 @@ std::variant<int16_t, uint16_t, int32_t, uint32_t, std::string, bool> Table::rea
 
 
 Record Table::searchTableByFieldNameAndValue(const std::string& fieldName, const std::string& fieldValue) {
-    std::cout << "Searching for: Field(" << fieldName << ") value(" << fieldValue << ")" << std::endl;
-    // initializes variables and ensures that the reading pointer is set to the beginning of the database
-    size_t totalRecords = (this->FM.getFileSize() - this->FM.dataStart) / recordSize;
-    this->FM.setPointerLoc(this->FM.dataStart);
+    try{
+        // initializes variables and ensures that the reading pointer is set to the beginning of the database
+        size_t totalRecords = (this->FM.getFileSize() - this->FM.dataStart) / recordSize;
+        this->FM.setPointerLoc(this->FM.dataStart);
 
-    for (size_t index = 0; index < totalRecords; ++index) {
-        // this will read "recordSize" length of bytes from the pointer's current position and save it to recordBytes
-        std::vector<uint8_t> recordBytes = this->FM.readBytes(recordSize);
+        for (size_t index = 0; index < totalRecords; ++index) {
+            // this will read "recordSize" length of bytes from the pointer's current position and save it to recordBytes
+            std::vector<uint8_t> recordBytes = this->FM.readBytes(recordSize);
 
-        Record record;
-        record.data = recordBytes;
+            Record record;
+            record.data = recordBytes;
 
-        size_t offset = 0;
-        bool found = false;
+            size_t offset = 0;
+            bool found = false;
 
-        // compares the structure of the record to the data retrieved and parses it into manageable chunks
-        // also changes the bytes array into its respective datatype
-        // (E.g. 2 bytes of value 0x01 0xA1 can be constructed back into 16bit integer of value 41217 in Little Endian)
-        for (const FieldData &field : this->structureRecord) {
-            if (field.name == fieldName) {
-                if (field.type == 3) {
-                    std::string s = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length);
-                    s.erase(std::ranges::remove(s, '\0').begin(), s.end());
-                    if (s == fieldValue) {
-                        found = true;
-                    }
-                }
-                else if (field.type == 4 || field.type == 2 || field.type == 1) {
-                    if (field.length == 4) {  // int32_t
-                        int32_t fieldData = *reinterpret_cast<const int32_t*>(&record.data[offset]);
-                        if (std::to_string(fieldData) == fieldValue) {
-                            found = true;
-                        }
-                    } else if (field.length == 2) {  // int16_t
-                        int16_t fieldData = *reinterpret_cast<const int16_t*>(&record.data[offset]);
-                        if (std::to_string(fieldData) == fieldValue) {
+            // compares the structure of the record to the data retrieved and parses it into manageable chunks
+            // also changes the bytes array into its respective datatype
+            // (E.g. 2 bytes of value 0x01 0xA1 can be constructed back into 16bit integer of value 41217 in Little Endian)
+            for (const FieldData &field : this->structureRecord) {
+                if (field.name == fieldName) {
+                    if (field.type == 3) {
+                        std::string s = std::string(reinterpret_cast<const char*>(&record.data[offset]), field.length);
+                        s.erase(std::ranges::remove(s, '\0').begin(), s.end());
+                        if (s == fieldValue) {
                             found = true;
                         }
                     }
+                    else if (field.type == 4 || field.type == 2 || field.type == 1) {
+                        if (field.length == 4) {  // int32_t
+                            int32_t fieldData = *reinterpret_cast<const int32_t*>(&record.data[offset]);
+                            if (std::to_string(fieldData) == fieldValue) {
+                                found = true;
+                            }
+                        } else if (field.length == 2) {  // int16_t
+                            int16_t fieldData = *reinterpret_cast<const int16_t*>(&record.data[offset]);
+                            if (std::to_string(fieldData) == fieldValue) {
+                                found = true;
+                            }
+                        }
+                    }
                 }
-            }
-            offset += field.length;
+                offset += field.length;
 
-            if (found) {
-                std::cout<<"found record: " << std::endl;for (const auto& byte : record.data) {std::cout<< std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";}std::cout <<std::endl;
-                this->recentIndex = index;
-                return record;
+                if (found) {
+                    this->recentIndex = index;
+                    return record;
+                }
             }
         }
+        // if the record has not enough records or no record was found return an empty record with an ID of 0
+        Record rec;
+        rec.data.push_back(0x00); // no id of 0
+        return rec;
+    } catch (const nlohmann::json_abi_v3_11_3::detail::type_error& e) {
+        std::cerr << "Error parsing JSON or handling UTF-8 data: " << e.what() << std::endl;
+        // Return an empty record or a record indicating failure
+        Record rec;
+        rec.data.push_back(0x01);
+        return rec;
+    } catch (const std::exception &e) {
+        std::cerr << "Error parsing JSON or handling UTF-8 data: " << e.what() << std::endl;
+        Record rec;
+        rec.data.push_back(0x02);
+        return rec;
     }
-    // if the record has not enough records or no record was found return an empty record with an ID of 0
-    Record rec;
-    rec.data.push_back(0x0000); // no id of 0
-    return rec;
 }
 
 /// wrapper functions for easier programming
 int Table::appendRecordFromJson(nlohmann::json json) {
-    std::cout << "Append Record from json" << std::endl;
     return appendRecord(JsonToRecord(std::move(json)));
 }
 int Table::appendRecord(const Record& record) {
-    std::cout << "Append Record" << std::endl;
     setPrimaryKeyIndex(this->lastPrimaryKeyIndex+1);
     return FM.appendAtTheEnd(record.data);
 }
@@ -244,11 +251,9 @@ nlohmann::json Table::RecordToJson(Record record) {
 }
 // similar to Table::RecordToJson this method does it backwards, it itterates through the structure and appends the value from the json to the record within the data length and returns the array of bytes
 Record Table::JsonToRecord(nlohmann::json json) {
-    std::cout <<json<<"\ncurrent Last Index: " << this->lastPrimaryKeyIndex << std::endl;
     int offset = 0;
     Record record;
     for(const FieldData &field : this->structureRecord) {
-        std::cout << field.name << std::endl;
         if(field.isPrimary) {
             record = record.appendField<uint32_t>(&record,json[field.name].get<uint32_t>(), field.length);
             continue;
@@ -277,7 +282,6 @@ Record Table::JsonToRecord(nlohmann::json json) {
         }
         offset+= field.length;
     }
-    std::cout<<"record: " << std::endl;for (const auto& byte : record.data) {std::cout<< std::hex << std::setw(2) << std::setfill('0') << (int)byte << " ";}std::cout <<std::endl;
     return record;
 }
 

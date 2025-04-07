@@ -38,7 +38,7 @@ bool CertSocket::start(int port) {
         return false;
     }
 
-    std::cout << "CertSocket::start port:" << port << std::endl;
+    std::cout << "CertSocket started at port " << port << std::endl;
     certsocket = socket(AF_INET, SOCK_STREAM, 0);
 
     sockaddr_in server{};
@@ -99,7 +99,6 @@ void CertSocket::sendCertificate(SOCKET clientSocket, const std::string &certFil
     send(clientSocket, reinterpret_cast<const char*>(filesize), sizeof(filesize), 0);
 
     //send actual data
-    std::cout << buffer.data() << std::endl;
     send(clientSocket, buffer.data(), filesize, 0);
 
     std::string clientIP;

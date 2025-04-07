@@ -20,7 +20,6 @@ Socket::Socket() : serverSocket(INVALID_SOCKET), running(false), ctx(nullptr) {
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
     db = Database::GetInstance();
-    std::cout << "out of DB in Socket" << std::endl;
 }
 
 Socket::~Socket() {
@@ -61,7 +60,7 @@ bool Socket::start(int port) {
                                "set OPENSSL_CONF=%cd%\\OpenSSL-Win64\\bin\\cnf\\openssl.cnf &&"
                                ".\\OpenSSL-Win64\\bin\\openssl.exe req -x509 -key server.key -out ServerCertificate.crt");
         if(cmdresult > 0) {
-            std::cout << "':('  😢" << std::endl;
+            std::cout << ":(" << std::endl;
         }
         return false;
     }
@@ -112,7 +111,6 @@ bool Socket::start(int port) {
 void Socket::SocketConnectionLoop() {
     while (running) {
         // Accept clients
-        std::cout << "idk" << std::endl;
         sockaddr_in clientAddr{};
         int clientSize = sizeof(clientAddr);
         SOCKET clientSocket = accept(serverSocket, (sockaddr*)&clientAddr, &clientSize);
@@ -149,7 +147,6 @@ void Socket::handleClient(SSL* ssl, SOCKET clientSocket) {
 
     if (bytesReceived > 0) {
         std::cout << "Received message from client: " << std::string(buffer, bytesReceived) << std::endl;
-        std::cout << std::string(buffer) << std::endl;
         const std::string message = db->parseDatabaseCommand(nlohmann::json::parse(std::string(buffer, bytesReceived)), 0).dump() + "\r\n";
         std::cout << "sending: " << message << std::endl;
         SSL_write(ssl, message.c_str(), message.size());
@@ -159,7 +156,6 @@ void Socket::handleClient(SSL* ssl, SOCKET clientSocket) {
     SSL_shutdown(ssl);
     SSL_free(ssl);
     closesocket(clientSocket);
-    std::cout<<"Conn closed" << std::endl;
 
 }
 
