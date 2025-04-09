@@ -35,6 +35,9 @@ private:
     void TableTest(const std::string& args);
     static std::unordered_map<std::string, std::string> CommandParser(const std::string &args);
     void createTable();
+
+    static void Backup(const std::string &args);
+
     static void emulateDbConnection(const std::string& args);
 
 };

@@ -9,6 +9,8 @@
 #include <vector>
 #include <filesystem>
 
+namespace fs = std::filesystem::__cxx11;
+
 FileManager::FileManager(const std::string& filePath) : filePath(filePath) {
     this->openFile(filePath);
 }
@@ -180,5 +182,25 @@ unsigned long long int FileManager::getFileSize() {
 void FileManager::changeFilePath(const std::string &newPath) {
     this->filePath = newPath;
 }
+// because for some reason std::filesystem::remove can only remove empty dirs or only one file at a time
+void FileManager::recursiveRemove(const fs::path &path) {
+    std::cout << path << std::endl;
+    try {
+        if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
+            for ( const fs::directory_entry& entry : fs::directory_iterator(path)) {
+                std::cout << entry.path().filename().string() << std::endl;
+                if (entry.is_directory()) {
+                    recursiveRemove(entry.path());
+                }
+                else {
+                    std::filesystem::remove(entry.path());
+                }
+            }
+            std::filesystem::remove(path);
 
+        }
+    } catch (fs::filesystem_error& ex) {
+        std::cerr << ex.what() << std::endl;
+    }
+}
 

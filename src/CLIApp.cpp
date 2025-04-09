@@ -10,6 +10,7 @@
 #include "Database.h"
 #include "Table.h"
 
+namespace fs = std::filesystem;
 
 // uses formula x + baseValue + (x + multiplier) to make a max length of a string to allow for small changes after the table is created.
 uint16_t maxStringLength(int input) {
@@ -36,6 +37,7 @@ CLIApp::CLIApp() {
     commands["TableTest"] = [this](const std::string& args) {this->TableTest(args);};
     commands["emulateIncomingConnection"] = [this](const std::string& args) {this->emulateDbConnection(args);};
     commands["createTable"] = [this](const std::string&) {this->createTable();};
+    commands["backup"] = [this](const std::string& args) {CLIApp::Backup(args);};
     // enable a looping condition to allow for constantly listening for new commands sent by the user
     this->running=true;
 }
@@ -173,13 +175,20 @@ std::unordered_map<std::string, std::string> CLIApp::CommandParser(const std::st
     std::string argument;
     std::string currentFlag;
     std::unordered_map<std::string, std::string> commandpairs;
-
     while (iss >> argument) {
-        if (argument.starts_with("--"))     currentFlag = argument.substr(2);
-        else if (argument.starts_with("-") && argument.size() > 1)       currentFlag = argument.substr(1);
-        else if (!currentFlag.empty())      commandpairs[currentFlag] = argument;
-        else    commandpairs[currentFlag] = "";
-
+        if (argument.starts_with("--")) {
+            currentFlag = argument.substr(2);
+        }
+        else if (argument.starts_with("-") && argument.size() > 1) {
+            currentFlag = argument.substr(1);
+        }
+        else if (!currentFlag.empty()) {
+            commandpairs[currentFlag] = argument;
+            currentFlag.clear();
+        }
+    }
+    if (!currentFlag.empty()) {
+        commandpairs[currentFlag] = "";
     }
     return commandpairs;
 }
@@ -275,4 +284,52 @@ void CLIApp::createTable() {
 
     std::cout << std::endl << "\n\nfinished writing all fields\nsuccessfully created the file :)" << std::endl;
     output.close();
+}
+
+
+void CLIApp::Backup(const std::string& args) {
+    std::unordered_map<std::string, std::string> cmds = CLIApp::CommandParser(args);
+    for (auto pair : cmds) {
+        if ( pair.first == "b" || pair.first == "backup") {
+            auto now = std::chrono::system_clock::now();
+            std::time_t now_time_t = std::chrono::system_clock::to_time_t(now);
+            std::tm now_tm = *std::localtime(&now_time_t);
+            std::ostringstream oss;
+            oss << std::put_time(&now_tm, "Backup-%d-%m-%Y-%H-%M");
+            std::string newDir = pair.second.empty() ?  oss.str() : pair.second;
+            fs::create_directory(".\\tables\\"+newDir);
+            for (std::filesystem::directory_entry file : fs::directory_iterator(".\\tables\\")) {
+                if (file.is_regular_file() && file.path().extension().string() == ".bdb" && !(file.path().filename().string().starts_with(".") || file.path().filename().string().starts_with("~"))) {
+                    fs::copy(file, ".\\tables\\"+newDir+"\\"+file.path().filename().string(), fs::copy_options::overwrite_existing);
+                }
+            }
+            std::cout<<"backup success!"<<std::endl;
+        }else if ( pair.first == "r" || pair.first == "restore") {
+            std::string newDir = pair.second;
+            for (std::filesystem::directory_entry file : fs::directory_iterator(".\\tables\\"+newDir)) {
+                if (file.is_regular_file() && file.path().extension().string() == ".bdb" && !(file.path().filename().string().starts_with(".") || file.path().filename().string().starts_with("~"))) {
+                    fs::remove(".\\tables\\"+file.path().filename().string());
+                    fs::copy(file, ".\\tables\\"+file.path().filename().string(), fs::copy_options::overwrite_existing);
+                }
+            }
+            std::cout<<"restore success!"<<std::endl;
+        }
+        else if (pair.first == "l" || pair.first == "list") {
+            std::cout << "List of backups:" << std::endl;
+            for (const auto& directory : fs::directory_iterator(".\\tables\\")) {
+                if (directory.is_directory()) {
+                    int count = 0; for(const auto& entry:fs::directory_iterator(directory)) {entry.is_regular_file() ? count++ : count;}
+                    std::cout << directory.path().filename().string() << "\t\tfile count: " << count << std::endl;
+                }
+            }
+        }else if (pair.first == "d" || pair.first == "delete"){
+            for (const auto& directory : fs::directory_iterator(".\\tables\\")) {
+                if (directory.is_directory() && directory.path().filename().string() == pair.second) {
+                    FileManager::recursiveRemove(".\\tables\\"+directory.path().filename().string());
+                }
+            }
+        }else {
+            std::cout << pair.first << " is not a valid command\n"  << "Use a valid format: backup <-b | -backup | -r | -restore>"<< std::endl;
+        }
+    }
 }

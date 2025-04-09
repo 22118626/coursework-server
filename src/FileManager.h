@@ -8,6 +8,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <filesystem>
 
 
 class FileManager {
@@ -38,15 +39,15 @@ public:
     int appendAtTheEnd(const std::vector<uint8_t>& data);
     int modifyAtIndex(size_t size, const std::vector<unsigned char>& data);
     int modifyAtPointer(fpos_t pointer, const std::vector<uint8_t> &data);
+    fpos_t currentPointerPosition();
+    void changeFilePath(const std::string &newPath);
+    void setPointerLoc(fpos_t addr);
+    int ShiftDataFromfpos(fpos_t fpos, long shift);
+    static void recursiveRemove(const std::filesystem::__cxx11::path &path);
 
     fpos_t dataStart{};
     std::uint16_t permissionLevel;
     std::string name;
-    void setPointerLoc(fpos_t addr);
-
-    fpos_t currentPointerPosition();
-    void changeFilePath(const std::string &newPath);
-    int ShiftDataFromfpos(fpos_t fpos, long shift);
 
     template<typename T>
     int writeAt(const T& change, fpos_t offset) {
