@@ -28,6 +28,13 @@ std::shared_ptr<Database> &Database::GetInstance() {
 void Database::Init() {
 
     std::string path = "./tables";
+    if (!fs::exists(path)) {
+        try {
+            fs::create_directory(path);
+        } catch(const fs::filesystem_error &ex) {
+            std::cerr <<"error creating file (" << path<<")\n"<< ex.what() << std::endl;
+        }
+    }
 
     try{
         for(const auto &entry : fs::directory_iterator(path)) {
@@ -172,6 +179,9 @@ nlohmann::json Database::GetTables(nlohmann::json json) {
                 fieldjson["length"] = i.length;
                 fieldjson["type"] = i.type;
                 fieldjson["isPrimary"] = i.isPrimary;
+                if (i.type == 4) {
+                    fieldjson["TableName"] = i.tableName;
+                }
 
                 tablejson["array"].push_back(fieldjson);
             }

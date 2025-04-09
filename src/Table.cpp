@@ -48,8 +48,8 @@ void Table::initializeTable() {
         uint16_t length = this->FM.readNextUint16_t();
         if (type==4) {
             std::string fieldTableName = this->FM.readNextString();
-            uint16_t tableNameLength = this->FM.readNextUint16_t();
-            FieldData fieldData = {str, type, length, (i==0), fieldTableName, tableNameLength};
+            //uint16_t tableNameLength = this->FM.readNextUint16_t();
+            FieldData fieldData = {str, type, length, (i==0), fieldTableName};
             structureRecord.push_back(fieldData);
         }else {
             FieldData fieldData = {str, type, length, (i==0)};

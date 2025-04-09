@@ -36,7 +36,7 @@ if(MINGW)
     find_package(Threads REQUIRED)
 
     # Ensure static libraries are used
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -static-libgcc")
 
 endif()
 

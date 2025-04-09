@@ -253,10 +253,11 @@ void CLIApp::createTable() {
                 try {output.write(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));}
                 catch (std::exception &e) {std::cerr <<"\"" <<input << "\" is not a valid number. \nexiting" << std::endl;return;}
             }if (std::stoi(inp) == 4) {
-                output.write(reinterpret_cast<char*>(4), sizeof(uint16_t));
+                int tmp = 4;
+                output.write(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));
                 std::string tablenameinput;
-                std::cout << std::endl << "what table name if this linking to? : "; std::getline(std::cin, tablenameinput);
-                int tmp = maxStringLength(tablenameinput.length());
+                std::cout << std::endl << "what table name is this linking to? : "; std::getline(std::cin, tablenameinput);
+                tmp = maxStringLength(tablenameinput.length());
                 output.write(reinterpret_cast<char*>(&tmp), sizeof(uint16_t));
                 output.write(padString(tablenameinput, maxStringLength(tablenameinput.length())).data(), maxStringLength(tablenameinput.length()));
             }
